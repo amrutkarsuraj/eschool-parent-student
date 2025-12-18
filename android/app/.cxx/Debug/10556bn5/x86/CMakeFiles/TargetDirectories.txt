@@ -1,0 +1,2 @@
+D:/wfhprojects/e-school-saas(student_parent)/e-school-saas (parent_student) code/android/app/.cxx/Debug/10556bn5/x86/CMakeFiles/edit_cache.dir
+D:/wfhprojects/e-school-saas(student_parent)/e-school-saas (parent_student) code/android/app/.cxx/Debug/10556bn5/x86/CMakeFiles/rebuild_cache.dir

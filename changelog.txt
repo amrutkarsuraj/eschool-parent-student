@@ -1,0 +1,123 @@
+═══════════════════════════════════════════════════════════════════════════════
+                           E-SCHOOL SAAS v.1.6.0 CHANGELOG
+═══════════════════════════════════════════════════════════════════════════════
+
+
+FILES CHANGED:
+═══════════════════════════════════════════════════════════════════════════════
+
+D       assets/images/0.75x/add_chat_teacher_vector.png
+D       assets/images/0.75x/erase_vector.png
+D       assets/images/0.75x/lower_pattern.png
+D       assets/images/0.75x/pencil_vector.png
+D       assets/images/0.75x/profile_img.png
+D       assets/images/0.75x/slider1.png
+D       assets/images/0.75x/slider2.png
+D       assets/images/0.75x/student_father.png
+D       assets/images/0.75x/student_mother.png
+D       assets/images/0.75x/teacher 1.png
+D       assets/images/0.75x/teacher 2.png
+D       assets/images/0.75x/teacher 3.png
+D       assets/images/0.75x/teacher 4.png
+D       assets/images/0.75x/upper_pattern.png
+D       assets/images/1.5x/add_chat_teacher_vector.png
+D       assets/images/1.5x/erase_vector.png
+D       assets/images/1.5x/lower_pattern.png
+D       assets/images/1.5x/pencil_vector.png
+D       assets/images/1.5x/profile_img.png
+D       assets/images/1.5x/slider1.png
+D       assets/images/1.5x/slider2.png
+D       assets/images/1.5x/student_father.png
+D       assets/images/1.5x/student_mother.png
+D       assets/images/1.5x/teacher 1.png
+D       assets/images/1.5x/teacher 2.png
+D       assets/images/1.5x/teacher 3.png
+D       assets/images/1.5x/teacher 4.png
+D       assets/images/1.5x/upper_pattern.png
+D       assets/images/2.0x/add_chat_teacher_vector.png
+D       assets/images/2.0x/erase_vector.png
+D       assets/images/2.0x/lower_pattern.png
+D       assets/images/2.0x/pencil_vector.png
+D       assets/images/2.0x/profile_img.png
+D       assets/images/2.0x/slider1.png
+D       assets/images/2.0x/slider2.png
+D       assets/images/2.0x/student_father.png
+D       assets/images/2.0x/student_mother.png
+D       assets/images/2.0x/teacher 1.png
+D       assets/images/2.0x/teacher 2.png
+D       assets/images/2.0x/teacher 3.png
+D       assets/images/2.0x/teacher 4.png
+D       assets/images/2.0x/upper_pattern.png
+D       assets/images/3.0x/add_chat_teacher_vector.png
+D       assets/images/3.0x/erase_vector.png
+D       assets/images/3.0x/lower_pattern.png
+D       assets/images/3.0x/pencil_vector.png
+D       assets/images/3.0x/profile_img.png
+D       assets/images/3.0x/slider1.png
+D       assets/images/3.0x/slider2.png
+D       assets/images/3.0x/student_father.png
+D       assets/images/3.0x/student_mother.png
+D       assets/images/3.0x/teacher 1.png
+D       assets/images/3.0x/teacher 2.png
+D       assets/images/3.0x/teacher 3.png
+D       assets/images/3.0x/teacher 4.png
+D       assets/images/3.0x/upper_pattern.png
+D       assets/images/4.0x/add_chat_teacher_vector.png
+D       assets/images/4.0x/erase_vector.png
+D       assets/images/4.0x/lower_pattern.png
+D       assets/images/4.0x/pencil_vector.png
+D       assets/images/4.0x/profile_img.png
+D       assets/images/4.0x/slider1.png
+D       assets/images/4.0x/slider2.png
+D       assets/images/4.0x/student_father.png
+D       assets/images/4.0x/student_mother.png
+D       assets/images/4.0x/teacher 1.png
+D       assets/images/4.0x/teacher 2.png
+D       assets/images/4.0x/teacher 3.png
+D       assets/images/4.0x/teacher 4.png
+D       assets/images/4.0x/upper_pattern.png
+D       assets/images/add_chat_teacher_vector.png
+D       assets/images/lower_pattern.png
+A       assets/images/lower_pattern.svg
+D       assets/images/profile_img.png
+D       assets/images/student_father.png
+D       assets/images/student_mother.png
+D       assets/images/teacher 1.png
+D       assets/images/teacher 2.png
+D       assets/images/teacher 3.png
+D       assets/images/teacher 4.png
+D       assets/images/upper_pattern.png
+A       assets/images/upper_pattern.svg
+M       assets/languages/en.json
+M       assets/languages/hi.json
+M       assets/languages/ur.json
+M       lib/app/app.dart
+M       lib/cubits/onlineExamQuestionsCubit.dart
+M       lib/main.dart
+M       lib/ui/screens/auth/parentLoginScreen.dart
+M       lib/ui/screens/auth/studentLoginScreen.dart
+M       lib/ui/screens/chat/chatScreen.dart
+M       lib/ui/screens/exam/onlineExam/examOnlineScreen.dart
+M       lib/ui/screens/exam/onlineExam/widgets/optionContainer.dart
+M       lib/ui/screens/exam/onlineExam/widgets/questionContainer.dart
+M       lib/ui/screens/galleryDetailsScreen.dart
+M       lib/ui/screens/privacyPolicyScreen.dart
+M       lib/ui/screens/reports/subjectWiseDetailedReport.dart
+M       lib/ui/screens/resultOnline/resultOnlineScreen.dart
+M       lib/ui/screens/studentProfileScreen.dart
+M       lib/ui/widgets/announcementDetailsContainer.dart
+M       lib/ui/widgets/settingsContainer.dart
+M       lib/utils/constants.dart
+M       lib/utils/errorMessageKeysAndCodes.dart
+M       lib/utils/labelKeys.dart
+M       lib/utils/notificationUtility.dart
+M       pubspec.yaml
+
+SUMMARY:
+═══════════════════════════════════════════════════════════════════════════════
+106 files changed, 1183 insertions(+), 697 deletions(-)
+
+Legend:
+D = Deleted
+A = Added  
+M = Modified 
