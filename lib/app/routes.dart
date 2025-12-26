@@ -126,9 +126,9 @@ class Routes {
     // GetPage(
     //     name: studentOnbording,
     //     page: () => StudentOnbordingScreen.routeInstance()),
-    GetPage(
-        name: parentOnbording,
-        page: () => ParentOnbordingScreen.routeInstance()),
+    // GetPage(
+    //     name: parentOnbording,
+    //     page: () => ParentOnbordingScreen.routeInstance()),
     GetPage(name: home, page: () => HomeScreen.routeInstance()),
     GetPage(name: auth, page: () => AuthScreen.routeInstance()),
     GetPage(name: studentLogin, page: () => StudentLoginScreen.routeInstance()),
