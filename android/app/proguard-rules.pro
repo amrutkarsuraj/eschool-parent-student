@@ -17,3 +17,19 @@
 
 # Keep Razorpay classes and any other relevant classes
 -keep class com.razorpay.** { *; }
+############################
+# Razorpay SDK
+############################
+-keep class com.razorpay.** { *; }
+-dontwarn com.razorpay.**
+
+############################
+# AndroidX Lifecycle (required by Razorpay)
+############################
+-keep class androidx.lifecycle.** { *; }
+-dontwarn androidx.lifecycle.**
+
+############################
+# Kotlin Metadata (safe)
+############################
+-keep class kotlin.Metadata { *; }
