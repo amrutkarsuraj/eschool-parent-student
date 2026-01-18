@@ -1072,73 +1072,47 @@ Widget _buildPayNowButton({double? advanceAmount, List<int>? installmentIds}) {
                   strokeWidth: 2,
                 )
               : null,
-          onTap: () {
-            if (kDebugMode) {
-              print("=== PAY BUTTON CLICKED ===");
-              print("Payment Task State: ${paymentTaskState.runtimeType}");
-              print("Current Tab: $_currentlySelectedTabKey");
-            }
+            onTap: () {
 
-            // Check if button is disabled due to loading
-            if (paymentTaskState is PrePaymentTasksInProgress) {
-              if (kDebugMode) {
-                print("Button disabled - PrePaymentTasksInProgress");
-              }
-              return;
-            }
+              if (paymentTaskState is PrePaymentTasksInProgress) return;
 
-            if (_currentlySelectedTabKey == optionalTitleKey) {
-              if (kDebugMode) {
-                print("Optional fee selected");
-                print("Selected fee IDs: $_toPayOptionalFeeIds");
-              }
-
-              if (_toPayOptionalFeeIds.isEmpty) {
-                if (kDebugMode) {
-                  print("No optional fees selected - showing error");
-                }
-                Utils.showCustomSnackBar(
-                    context: context,
-                    errorMessage: Utils.getTranslatedLabel(
-                        pleaseSelectAtLeastOneOptionalFeeKey),
-                    backgroundColor: Theme.of(context).colorScheme.error);
-                return;
-              }
-            } else {
-              if (kDebugMode) {
-                print("Compulsory fee selected");
-                print("Current installment paid: ${widget.childFeeDetails.currentInstallment().isPaid}");
-                print("Advance amount: $_advanceAmount");
-              }
-
-              // Compulsory fees payment validation
-              if ((widget.childFeeDetails.currentInstallment().isPaid ?? false)) {
-                final nextInstallment = widget.childFeeDetails.nextUnpaidInstallment();
-
-                if (nextInstallment.id == null && _advanceAmount <= 0.0) {
-                  if (kDebugMode) {
-                    print("Advance amount validation failed");
-                  }
+              // -------- OPTIONAL FEES --------
+              if (_currentlySelectedTabKey == optionalTitleKey) {
+                if (_toPayOptionalFeeIds.isEmpty) {
                   Utils.showCustomSnackBar(
-                      context: context,
-                      errorMessage: Utils.getTranslatedLabel(
-                          advanceAmountCanNotBeZeroKey),
-                      backgroundColor: Theme.of(context).colorScheme.error);
+                    context: context,
+                    errorMessage:
+                    Utils.getTranslatedLabel(pleaseSelectAtLeastOneOptionalFeeKey),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  );
                   return;
                 }
               }
-            }
 
-            if (kDebugMode) {
-              print("All validations passed - starting payment process");
-            }
+              // -------- COMPULSORY FEES --------
+              else {
+                final current = widget.childFeeDetails.currentInstallment();
+                final isPaid = current?.isPaid ?? false;
 
-            // Start pre-payment process
-            startPrePaymentProcess(
-                advanceAmount: advanceAmount, 
-                installmentIds: installmentIds
-            );
-          },
+                if (isPaid) {
+                  final next = widget.childFeeDetails.nextUnpaidInstallment();
+
+                  // SAFE null access (this line caused Play Store crash)
+                  final nextId = next?.id;
+
+                  // Just avoid crash – DO NOT block payment
+                  if (nextId == null) {
+                    // do nothing, allow payment
+                  }
+                }
+              }
+
+              // -------- START PAYMENT (SAFE) --------
+              startPrePaymentProcess(
+                advanceAmount: _advanceAmount ?? 0.0,
+                installmentIds: installmentIds ?? [],
+              );
+            }
         ),
       );
     },
