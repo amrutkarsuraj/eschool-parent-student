@@ -78,6 +78,20 @@ class AuthRepository {
     return Hive.box(authBoxKey).get(jwtTokenKey) ?? "";
   }
 
+  Future<Guardian> getParentData() async {
+    try {
+      final result = await Api.get(
+        url: Api.getParentData,
+        useAuthToken: true,
+      );
+
+      return Guardian.fromJson(Map.from(result['data'] ?? {}));
+    } catch (e, st) {
+      print("This is the stack trace: $st");
+      print("This is the error: $e");
+      throw ApiException(e.toString());
+    }
+  }
   Future<void> setJwtToken(String value) async {
     return Hive.box(authBoxKey).put(jwtTokenKey, value);
   }

@@ -31,3 +31,12 @@ const String notificationsBoxKey = "notifications";
 
 const String temporarilyStoredNotificationsKey =
     "temporarilyStoredNotifications";
+
+
+// Pending exam submission box keys
+const String pendingExamBoxKey = "pendingExamBox";
+const String pendingExamIdKey = "pendingExamId";
+const String pendingExamAnswersKey = "pendingExamAnswers";
+const String pendingExamTitleKey = "pendingExamTitle";
+const String pendingExamSubjectNameKey = "pendingExamSubjectName";
+const String pendingExamClassSubjectIdKey = "pendingExamClassSubjectId";

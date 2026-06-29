@@ -10,9 +10,8 @@ import 'package:eschool/cubits/socketSettingCubit.dart';
 import 'package:eschool/cubits/studentProfileCubit.dart';
 import 'package:eschool/cubits/studentGuardianDetailsCubit.dart';
 import 'package:eschool/cubits/timeTableCubit.dart';
-import 'package:eschool/data/models/notificationDetails.dart';
+import 'package:eschool/cubits/vehicleAssignmentStatusCubit.dart';
 import 'package:eschool/data/repositories/authRepository.dart';
-import 'package:eschool/data/repositories/notificationRepository.dart';
 import 'package:eschool/data/repositories/schoolRepository.dart';
 import 'package:eschool/data/repositories/studentRepository.dart';
 import 'package:eschool/data/repositories/systemInfoRepository.dart';
@@ -42,6 +41,7 @@ import 'package:eschool/utils/labelKeys.dart';
 import 'package:eschool/utils/notificationUtility.dart';
 import 'package:eschool/utils/systemModules.dart';
 import 'package:eschool/utils/utils.dart';
+import 'package:eschool/utils/pendingExamSubmissionHandler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
@@ -63,7 +63,9 @@ class HomeScreen extends StatefulWidget {
           create: (_) => TimeTableCubit(StudentRepository()),
         ),
         BlocProvider<StudentGuardianDetailsCubit>(
-          create: (_) => StudentGuardianDetailsCubit(StudentRepository()),
+          create: (_) => StudentGuardianDetailsCubit(
+            StudentRepository(),
+          ),
         ),
         BlocProvider<AttendanceCubit>(
           create: (context) => AttendanceCubit(StudentRepository()),
@@ -83,6 +85,9 @@ class HomeScreen extends StatefulWidget {
         BlocProvider<StudentProfileCubit>(
           create: (_) =>
               StudentProfileCubit(StudentRepository(), AuthRepository()),
+        ),
+        BlocProvider<VehicleAssignmentStatusCubit>(
+          create: (_) => VehicleAssignmentStatusCubit(),
         ),
       ],
       child: HomeScreen(
@@ -119,7 +124,7 @@ class HomeScreenState extends State<HomeScreen>
   );
 
   late final Animation<Offset> _moreMenuBottomsheetAnimation =
-      Tween<Offset>(begin: const Offset(0.0, 1.0), end: Offset.zero).animate(
+      Tween<Offset>(begin: const Offset(0.0, 1.5), end: Offset.zero).animate(
     CurvedAnimation(
       parent: _moreMenuBottomsheetAnimationController,
       curve: Curves.easeInOut,
@@ -152,7 +157,6 @@ class HomeScreenState extends State<HomeScreen>
     _animationController.forward();
 
     Future.delayed(Duration.zero, () {
-      loadTemporarilyStoredNotifications();
       context
           .read<SchoolConfigurationCubit>()
           .fetchSchoolConfiguration(useParentApi: false);
@@ -164,24 +168,9 @@ class HomeScreenState extends State<HomeScreen>
 
       //setup notification callback here
       NotificationUtility.setUpNotificationService();
-    });
-  }
 
-  void loadTemporarilyStoredNotifications() {
-    NotificationRepository.getTemporarilyStoredNotifications()
-        .then((notifications) {
-      //
-      for (var notificationData in notifications) {
-        NotificationRepository.addNotification(
-            notificationDetails:
-                NotificationDetails.fromJson(Map.from(notificationData)));
-      }
-      //
-      if (notifications.isNotEmpty) {
-        NotificationRepository.clearTemporarilyNotification();
-      }
-
-      //
+      // Check for pending exam submissions (in case app was terminated during exam)
+      PendingExamSubmissionHandler.checkAndSubmitPendingExam();
     });
   }
 
@@ -258,8 +247,16 @@ class HomeScreenState extends State<HomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
+    // When app resumes from background, recheck notification permissions
+    // This handles the case where user manually enables notifications in Settings
     if (state == AppLifecycleState.resumed) {
-      loadTemporarilyStoredNotifications();
+      NotificationUtility.recheckNotificationPermissions();
+
+      // Reconnect WebSocket to pick up messages sent while app was in background
+      if (Utils.isModuleEnabled(
+          context: context, moduleId: chatModuleId.toString())) {
+        context.read<SocketSettingCubit>().reconnect();
+      }
     }
   }
 
@@ -344,7 +341,145 @@ class HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _handleTransportNavigation() async {
+    // Get current student profile
+    final student =
+        context.read<StudentProfileCubit>().getCurrentStudentProfile();
+    final studentId = student.id ?? 0;
+
+    final assignmentCubit = context.read<VehicleAssignmentStatusCubit>();
+
+    // If data is not loaded yet, fetch it first
+    if (!assignmentCubit.isDataLoaded()) {
+      // Trigger the API call
+      assignmentCubit.checkVehicleAssignmentStatus(userId: studentId);
+
+      // Wait for the response using stream
+      await assignmentCubit.stream.firstWhere((state) =>
+          state is VehicleAssignmentStatusFetchSuccess ||
+          state is VehicleAssignmentStatusFetchFailure);
+    }
+
+    // Check if assigned
+    if (assignmentCubit.isStatusAssigned()) {
+      // Navigate to transport home screen
+      await Get.toNamed(
+        Routes.transportEnrollHomeScreen,
+        arguments: studentId,
+      );
+    } else {
+      // Show snack bar with status message
+      final status = assignmentCubit.getAssignmentStatus();
+      final message = status?.message ?? 'Transportation not assigned';
+
+      if (mounted) {
+        Utils.showCustomSnackBar(
+          context: context,
+          errorMessage: message,
+          backgroundColor: Theme.of(context).colorScheme.error,
+        );
+      }
+    }
+  }
+
   Future<void> _onTapMoreMenuItemContainer(int index) async {
+    // Check if the tapped menu item is student diary
+    if (homeBottomSheetMenu[index].title == myDiaryKey) {
+      // Close the menu first
+      await _moreMenuBottomsheetAnimationController.reverse();
+      setState(() {
+        _isMoreMenuOpen = false;
+      });
+
+      // Reset bottom nav to previous selected index before navigation
+      if (_previousSelectedBottmNavIndex != -1) {
+        _currentSelectedBottomNavIndex = _previousSelectedBottmNavIndex;
+        _bottomNavItemTitlesAnimationController[_currentSelectedBottomNavIndex]
+            .reverse();
+      }
+
+      // Navigate to student diary screen
+      final student =
+          context.read<StudentProfileCubit>().getCurrentStudentProfile();
+      await Get.toNamed(Routes.studentDiaryScreen,
+          arguments: {'studentId': student.id ?? 0, 'id': student.id ?? 0});
+
+      // Ensure state is properly set after returning from navigation
+      setState(() {});
+      return;
+    }
+
+    // Check if the tapped menu item is transportation
+    if (homeBottomSheetMenu[index].title == transportationKey) {
+      // Close the menu first
+      await _moreMenuBottomsheetAnimationController.reverse();
+      setState(() {
+        _isMoreMenuOpen = false;
+      });
+
+      // Reset bottom nav to previous selected index before navigation
+      if (_previousSelectedBottmNavIndex != -1) {
+        _currentSelectedBottomNavIndex = _previousSelectedBottmNavIndex;
+        _bottomNavItemTitlesAnimationController[_currentSelectedBottomNavIndex]
+            .reverse();
+      }
+
+      // Handle transport navigation
+      await _handleTransportNavigation();
+
+      // Ensure state is properly set after returning from navigation
+      setState(() {});
+      return;
+    }
+
+    // Check if the tapped menu item is teachers
+    if (homeBottomSheetMenu[index].title == teachersKey) {
+      // Close the menu first
+      await _moreMenuBottomsheetAnimationController.reverse();
+      setState(() {
+        _isMoreMenuOpen = false;
+      });
+
+      // Reset bottom nav to previous selected index before navigation
+      if (_previousSelectedBottmNavIndex != -1) {
+        _currentSelectedBottomNavIndex = _previousSelectedBottmNavIndex;
+        _bottomNavItemTitlesAnimationController[_currentSelectedBottomNavIndex]
+            .reverse();
+      }
+
+      // Navigate to teachers screen
+      final student =
+          context.read<StudentProfileCubit>().getCurrentStudentProfile();
+      await Get.toNamed(Routes.childTeachers, arguments: student.id ?? 0);
+
+      // Ensure state is properly set after returning from navigation
+      setState(() {});
+      return;
+    }
+
+    // Check if the tapped menu item is certificate
+    if (homeBottomSheetMenu[index].title == certificateKey) {
+      // Close the menu first
+      await _moreMenuBottomsheetAnimationController.reverse();
+      setState(() {
+        _isMoreMenuOpen = false;
+      });
+
+      // Reset bottom nav to previous selected index before navigation
+      if (_previousSelectedBottmNavIndex != -1) {
+        _currentSelectedBottomNavIndex = _previousSelectedBottmNavIndex;
+        _bottomNavItemTitlesAnimationController[_currentSelectedBottomNavIndex]
+            .reverse();
+      }
+
+      // Navigate to certificate screen
+      await Get.toNamed(Routes.certificate);
+
+      // Ensure state is properly set after returning from navigation
+      setState(() {});
+      return;
+    }
+
     await _moreMenuBottomsheetAnimationController.reverse();
     _currentlyOpenMenuIndex = index;
     _isMoreMenuOpen = !_isMoreMenuOpen;
@@ -449,7 +584,10 @@ class HomeScreenState extends State<HomeScreen>
       return const ExamContainer();
     }
     if (homeBottomSheetMenu[_currentlyOpenMenuIndex].title == resultKey) {
-      return const ResultsContainer();
+      return BlocProvider(
+        create: (context) => SchoolSessionYearsCubit(SchoolRepository()),
+        child: const ResultsContainer(),
+      );
     }
 
     if (homeBottomSheetMenu[_currentlyOpenMenuIndex].title == reportsKey) {
@@ -550,7 +688,8 @@ class HomeScreenState extends State<HomeScreen>
         }
       },
       child: Scaffold(
-        body: context.read<AppConfigurationCubit>().appUnderMaintenance()
+        body: context.read<AppConfigurationCubit>().appUnderMaintenance() ||
+                context.read<AppConfigurationCubit>().systemUnderMaintenance()
             ? const AppUnderMaintenanceContainer()
             : BlocConsumer<SchoolConfigurationCubit, SchoolConfigurationState>(
                 listener: (context, state) {
@@ -584,6 +723,9 @@ class HomeScreenState extends State<HomeScreen>
                             .read<SocketSettingCubit>()
                             .init(userId: student.id ?? 0);
                       }
+
+                      // Note: Pending notification is processed in HomeContainer
+                      // after subjects are loaded (StudentSubjectsAndSlidersFetchSuccess)
                     }
                   }
                 },

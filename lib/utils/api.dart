@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:curl_logger_dio_interceptor/curl_logger_dio_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:eschool/data/repositories/authRepository.dart';
 import 'package:eschool/utils/constants.dart';
+import 'package:eschool/utils/curlLoggerInterceptor.dart';
 import 'package:eschool/utils/errorMessageKeysAndCodes.dart';
+import 'package:eschool/utils/unauthenticatedAccessManager.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiException implements Exception {
@@ -20,43 +22,29 @@ class ApiException implements Exception {
 
 // ignore: avoid_classes_with_only_static_members
 class Api {
-  // static Map<String, dynamic> headers() {
-  //   final String jwtToken = AuthRepository().getJwtToken();
-  //   final schoolCode = AuthRepository().schoolCode;
-
-  //   if (kDebugMode) {
-  //     print(jwtToken);
-  //   }
-
-  //   return {
-  //     "Authorization": "Bearer $jwtToken",
-  //     "school-code": schoolCode,
-  //     "Accept": "application/json",
-  //   };
-  // }
   static Map<String, dynamic> headers() {
-  final String jwtToken = AuthRepository().getJwtToken();
-  final schoolCode = AuthRepository().schoolCode;
+    final String jwtToken = AuthRepository().getJwtToken();
+    final schoolCode = AuthRepository().schoolCode;
 
-  if (kDebugMode) {
-    print("🔑 JWT Token: $jwtToken");
-    print("🏫 School Code: $schoolCode");
+    if (kDebugMode) {
+      debugPrint(jwtToken);
+    }
+
+    return {
+      "Authorization": "Bearer $jwtToken",
+      "school-code": schoolCode,
+      "Accept": "application/json",
+    };
   }
-
-  return {
-    "Authorization": "Bearer $jwtToken",
-    "school-code": schoolCode,
-    "Accept": "application/json",
-  };
-}
-
 
   ///[General Apis]
   //Apis that will be use in both student and parent app
   //
   static String logout = "${databaseUrl}logout";
   static String settings = "${databaseUrl}settings";
+  static String schoolSettings = "${databaseUrl}school-settings";
   static String holidays = "${databaseUrl}holidays";
+  static String notifications = "${databaseUrl}notifications";
 
   static String changePassword = "${databaseUrl}change-password";
   static String getSchoolGallery = "${databaseUrl}gallery";
@@ -125,6 +113,7 @@ class Api {
   //
   static String subjectsByChildId = "${databaseUrl}parent/subjects";
   static String parentLogin = "${databaseUrl}parent/login";
+  static String getParentData = "${databaseUrl}parent/get-data";
 
   //
   static String childProfileDetails =
@@ -145,7 +134,7 @@ class Api {
   static String generalAnnouncementsParent =
       "${databaseUrl}parent/announcements";
 
-  static String getStudentTeachersParent = "${databaseUrl}parent/teachers";
+  static String getStudentTeachersParent = "${databaseUrl}teachers";
   static String forgotPassword = "${databaseUrl}forgot-password";
 
   static String getStudentFeesDetailParent = "${databaseUrl}parent/fees";
@@ -156,8 +145,6 @@ class Api {
   static String storeFeesParent = "${databaseUrl}parent/store-fees";
 
   static String getPaidFeesListParent = "${databaseUrl}parent/fees-paid-list";
-  static String downloadFeesPaidReceiptParent =
-      "${databaseUrl}parent/fees-paid-receipt-pdf";
 
   static String parentExamOnlineList =
       "${databaseUrl}parent/get-online-exam-list";
@@ -183,6 +170,36 @@ class Api {
   static String getTransactions = "${databaseUrl}payment-transactions";
   static String downloadFeeReceipt = "${databaseUrl}parent/fees/receipt";
   static String downloadStudentResult = "${databaseUrl}student-exan-result-pdf";
+  static String downloadStudentIdCard = "${databaseUrl}student/id-card";
+
+  /// Certificate
+  static String getCertificateAssignments = "${databaseUrl}certificate/assign";
+  static String generateCertificate = "${databaseUrl}certificate/generate";
+
+  static String getDiaries = "${databaseUrl}diaries";
+  static String getStudentDetails = "${databaseUrl}student-details";
+  static String getStudentDiaryCategories =
+      "${databaseUrl}student/diary-categories";
+  static String getParentDiaryCategories =
+      "${databaseUrl}parent/diary-categories";
+
+  /// Transportation
+  static String getPickupPoints = "${databaseUrl}pickup-points";
+  static String getTransportationShifts = "${databaseUrl}transportation-shifts";
+  static String getTransportationFees = "${databaseUrl}transportation-fees";
+  static String payTransportationFees = "${databaseUrl}transportation-payments";
+  static String getTransportDashboard = "${databaseUrl}transport/dashboard";
+  static String getVehicleAssignmentStatus =
+      "${databaseUrl}get-vehicle-assignment-status";
+  static String getCurrentTransportPlan =
+      "${databaseUrl}transport/plans/current";
+  static String getRouteStops = "${databaseUrl}transport/routes/stops";
+  static String getLiveRoute = "${databaseUrl}transportation/live-route";
+  static String getTransportAttendanceList =
+      "${databaseUrl}transport/user/attendance-list";
+  static String getTransportRequests = "${databaseUrl}transport/requests";
+  static String storeTripReports = "${databaseUrl}transport/store-trip-reports";
+  static String getTransportReceipt = "${databaseUrl}transport/receipt";
 
   //
 
@@ -196,15 +213,26 @@ class Api {
     Function(int, int)? onReceiveProgress,
   }) async {
     try {
+      // Block all API calls if user has been logged out due to 401
+      if (useAuthToken && UnauthenticatedAccessManager().isLoggedOut) {
+        throw ApiException(
+          ErrorMessageKeysAndCode.unauthenticatedErrorCode,
+        );
+      }
+
       final Dio dio = Dio();
       final FormData formData =
           FormData.fromMap(body, ListFormat.multiCompatible);
       if (kDebugMode) {
-        print("API Called POST: $url with $body");
-        print("Body Params: $body");
+        debugPrint("API Called POST: $url with $body");
+        debugPrint("Body Params: $body");
       }
-      dio.interceptors.add(CurlLoggerDioInterceptor(
-          printOnSuccess: true, convertFormData: true));
+      dio.interceptors.add(CurlLoggerInterceptor(
+        printOnSuccess: true,
+        printOnError: true,
+        convertFormData: true,
+      ));
+
       final response = await dio.post(
         url,
         data: formData,
@@ -216,16 +244,28 @@ class Api {
       );
 
       if (bool.parse(response.data['error'].toString())) {
+        // Check if the error is a 401 (Unauthenticated) in the JSON body
+        final responseCode = response.data['code']?.toString();
+        if (responseCode == '401' && useAuthToken) {
+          UnauthenticatedAccessManager().handleUnauthorizedAccess();
+          throw ApiException(
+            ErrorMessageKeysAndCode.unauthenticatedErrorCode,
+          );
+        }
         throw ApiException(response.data['message'].toString());
       }
 
       if (kDebugMode) {
-        print("Response: ${response.data}");
+        debugPrint("Response: ${response.data}");
       }
       return Map.from(response.data);
     } on DioException catch (e) {
       if (kDebugMode) {
-        print(e.response?.data);
+        debugPrint(e.response?.data?.toString());
+      }
+      if (e.response?.statusCode == 401 && useAuthToken) {
+        UnauthenticatedAccessManager().handleUnauthorizedAccess();
+        throw ApiException(ErrorMessageKeysAndCode.unauthenticatedErrorCode);
       }
       if (e.response?.statusCode == 503 || e.response?.statusCode == 500) {
         throw ApiException(ErrorMessageKeysAndCode.internetServerErrorCode);
@@ -239,7 +279,94 @@ class Api {
     } on ApiException catch (e) {
       throw ApiException(e.errorMessage);
     } catch (e) {
-      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageKey);
+      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageCode);
+    }
+  }
+
+  /// Same as [post] but returns the raw response body as a
+  /// [String] instead of parsing JSON. Use this for endpoints
+  /// that return non-JSON responses (e.g. HTML).
+  static Future<String> postRaw({
+    required Map<String, dynamic> body,
+    required String url,
+    required bool useAuthToken,
+  }) async {
+    try {
+      if (useAuthToken && UnauthenticatedAccessManager().isLoggedOut) {
+        throw ApiException(
+          ErrorMessageKeysAndCode.unauthenticatedErrorCode,
+        );
+      }
+
+      final Dio dio = Dio();
+      final FormData formData =
+          FormData.fromMap(body, ListFormat.multiCompatible);
+      if (kDebugMode) {
+        debugPrint("API Called POST Raw: $url with $body");
+      }
+      dio.interceptors.add(CurlLoggerInterceptor(
+        printOnSuccess: true,
+        printOnError: true,
+        convertFormData: true,
+      ));
+
+      final response = await dio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: useAuthToken ? headers() : null,
+          responseType: ResponseType.plain,
+        ),
+      );
+
+      if (kDebugMode) {
+        debugPrint("Raw Response length: ${response.data?.toString().length}");
+      }
+
+      final rawBody = response.data?.toString() ?? '';
+
+      // The API may return a JSON error even though we requested
+      // a plain-text response.  Detect that case and throw so the
+      // caller never accidentally treats the error JSON as valid HTML.
+      try {
+        final decoded = jsonDecode(rawBody);
+        if (decoded is Map<String, dynamic>) {
+          final isError = decoded['error'] == true ||
+              decoded['error']?.toString() == 'true';
+          if (isError) {
+            final message = decoded['message']?.toString() ??
+                ErrorMessageKeysAndCode.defaultErrorMessageCode;
+            throw ApiException(message);
+          }
+        }
+      } on ApiException {
+        rethrow;
+      } catch (_) {
+        // Not valid JSON — that's fine, it's the HTML we expect.
+      }
+
+      return rawBody;
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        debugPrint(e.response?.data?.toString());
+      }
+      if (e.response?.statusCode == 401 && useAuthToken) {
+        UnauthenticatedAccessManager().handleUnauthorizedAccess();
+        throw ApiException(ErrorMessageKeysAndCode.unauthenticatedErrorCode);
+      }
+      if (e.response?.statusCode == 503 || e.response?.statusCode == 500) {
+        throw ApiException(ErrorMessageKeysAndCode.internetServerErrorCode);
+      }
+
+      throw ApiException(
+        e.error is SocketException
+            ? ErrorMessageKeysAndCode.noInternetCode
+            : ErrorMessageKeysAndCode.defaultErrorMessageCode,
+      );
+    } on ApiException catch (e) {
+      throw ApiException(e.errorMessage);
+    } catch (e) {
+      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageCode);
     }
   }
 
@@ -249,14 +376,24 @@ class Api {
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
+      // Block all API calls if user has been logged out due to 401
+      if (useAuthToken && UnauthenticatedAccessManager().isLoggedOut) {
+        throw ApiException(
+          ErrorMessageKeysAndCode.unauthenticatedErrorCode,
+        );
+      }
+
       final Dio dio = Dio();
 
       if (kDebugMode) {
-        print(url);
-        print(queryParameters);
+        debugPrint(url);
+        debugPrint(queryParameters.toString());
       }
-      dio.interceptors.add(CurlLoggerDioInterceptor(
-          printOnSuccess: true, convertFormData: true));
+      dio.interceptors.add(CurlLoggerInterceptor(
+        printOnSuccess: true,
+        printOnError: true,
+        convertFormData: true,
+      ));
       final response = await dio.get(
         url,
         queryParameters: queryParameters,
@@ -265,8 +402,16 @@ class Api {
 
       if (response.data['error']) {
         if (kDebugMode) {
-          print("Url $url");
-          print(response.data);
+          debugPrint("Url $url");
+          debugPrint(response.data.toString());
+        }
+        // Check if the error is a 401 (Unauthenticated) in the JSON body
+        final responseCode = response.data['code']?.toString();
+        if (responseCode == '401' && useAuthToken) {
+          UnauthenticatedAccessManager().handleUnauthorizedAccess();
+          throw ApiException(
+            ErrorMessageKeysAndCode.unauthenticatedErrorCode,
+          );
         }
         throw ApiException(response.data['code'].toString());
       }
@@ -274,12 +419,13 @@ class Api {
       return Map.from(response.data);
     } on DioException catch (e) {
       if (kDebugMode) {
-        print("Url is $url");
-        print(e.response?.data);
-        print(e.response?.statusCode);
+        debugPrint("Url is $url");
+        debugPrint(e.response?.data?.toString());
+        debugPrint(e.response?.statusCode.toString());
       }
 
-      if (e.response?.statusCode == 401) {
+      if (e.response?.statusCode == 401 && useAuthToken) {
+        UnauthenticatedAccessManager().handleUnauthorizedAccess();
         throw ApiException(ErrorMessageKeysAndCode.unauthenticatedErrorCode);
       }
       if (e.response?.statusCode == 503 || e.response?.statusCode == 500) {
@@ -294,9 +440,9 @@ class Api {
       throw ApiException(e.errorMessage);
     } catch (e) {
       if (kDebugMode) {
-        print(e.toString());
+        debugPrint(e.toString());
       }
-      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageKey);
+      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageCode);
     }
   }
 
@@ -319,6 +465,10 @@ class Api {
         },
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        UnauthenticatedAccessManager().handleUnauthorizedAccess();
+        throw ApiException(ErrorMessageKeysAndCode.unauthenticatedErrorCode);
+      }
       if (e.response?.statusCode == 503 || e.response?.statusCode == 500) {
         throw ApiException(ErrorMessageKeysAndCode.internetServerErrorCode);
       }
@@ -333,7 +483,7 @@ class Api {
     } on ApiException catch (e) {
       throw ApiException(e.errorMessage);
     } catch (e) {
-      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageKey);
+      throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageCode);
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:eschool/cubits/appLocalizationCubit.dart';
 import 'package:eschool/cubits/downloadFileCubit.dart';
@@ -19,6 +20,7 @@ import 'package:intl/intl.dart' as intl;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ignore: avoid_classes_with_only_static_members
 class Utils {
@@ -164,6 +166,51 @@ class Utils {
     return (months.indexWhere((element) => element == monthName)) + 1;
   }
 
+  /// Displays a fullscreen image preview with pinch-to-zoom support.
+  /// Falls back silently if the [imageUrl] is empty.
+  static Future<void> showImagePreview({
+    required BuildContext context,
+    required String imageUrl,
+    String? heroTag,
+  }) async {
+    if (imageUrl.trim().isEmpty) {
+      return;
+    }
+
+    await showGeneralDialog(
+      context: context,
+      barrierLabel: 'image_preview',
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.85),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) {
+        return _ImagePreviewDialog(
+          imageUrl: imageUrl,
+          heroTag: heroTag,
+        );
+      },
+    );
+  }
+  static String getIconForFieldType(String? fieldType) {
+    switch (fieldType?.toLowerCase()) {
+      case 'textarea':
+        return getImagePath('text_fields.svg');
+      case 'checkbox':
+        return getImagePath('checkbox.svg');
+      case 'radio':
+        return getImagePath('radio_button_checked.svg');
+      case 'text':
+        return getImagePath('title.svg');
+      case 'number':
+        return getImagePath('numbers.svg');
+      case 'dropdown':
+        return getImagePath('chevron-down.svg');
+      case 'file':
+        return getImagePath('info_pro_icon.svg');
+      default:
+        return getImagePath('info_pro_icon.svg');
+    }
+  }
   static List<String> buildMonthYearsBetweenTwoDates(
     DateTime startDate,
     DateTime endDate,
@@ -761,6 +808,25 @@ class Utils {
     return null;
   }
 
+
+  /// Launch phone dialer with the given phone number
+  static Future<void> launchPhoneDialer(String phoneNumber) async {
+    if (phoneNumber.isEmpty) return;
+
+// Clean the phone number (remove spaces, dashes, etc.)
+    final cleanedNumber = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+    final uri = Uri(scheme: 'tel', path: cleanedNumber);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        throw 'Could not launch phone dialer';
+      }
+    } catch (e) {
+      debugPrint('Error launching phone dialer: $e');
+    }
+  }
   /// Parse date with specific format provided by admin panel
   static DateTime? _parseWithSpecificFormat(String dateString, String format) {
     try {
@@ -830,3 +896,68 @@ extension EmptyPadding on num {
   SizedBox get sizedBoxHeight => SizedBox(height: toDouble());
   SizedBox get sizedBoxWidth => SizedBox(width: toDouble());
 }
+class _ImagePreviewDialog extends StatelessWidget {
+  final String imageUrl;
+  final String? heroTag;
+
+  const _ImagePreviewDialog({
+    required this.imageUrl,
+    this.heroTag,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget content = InteractiveViewer(
+      minScale: 0.8,
+      maxScale: 4.0,
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        fit: BoxFit.contain,
+        placeholder: (context, url) => const SizedBox(
+          width: 48,
+          height: 48,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+        errorWidget: (context, url, error) => const Icon(
+          Icons.broken_image_outlined,
+          color: Colors.white70,
+          size: 48,
+        ),
+      ),
+    );
+
+    if ((heroTag ?? '').isNotEmpty) {
+      content = Hero(tag: heroTag!, child: content);
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black.withValues(alpha: 0.92),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(child: content),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black.withValues(alpha: 0.35),
+                ),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: Colors.white,
+                ),
+                tooltip: 'Close',
+                onPressed: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

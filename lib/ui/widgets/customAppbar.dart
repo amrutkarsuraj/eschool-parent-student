@@ -9,12 +9,14 @@ class CustomAppBar extends StatelessWidget {
   final Function? onPressBackButton;
   final String? subTitle;
   final bool? showBackButton;
+  final Widget? trailingWidget;
   const CustomAppBar({
     Key? key,
     this.onPressBackButton,
     required this.title,
     this.subTitle,
     this.showBackButton,
+    this.trailingWidget,
   }) : super(key: key);
 
   @override
@@ -28,23 +30,23 @@ class CustomAppBar extends StatelessWidget {
             children: [
               (showBackButton ?? true)
                   ? Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Padding(
-                        padding: EdgeInsetsDirectional.only(
-                          start: Utils.screenContentHorizontalPadding,
-                        ),
-                        child: SvgButton(
-                          onTap: () {
-                            if (onPressBackButton != null) {
-                              onPressBackButton!.call();
-                            } else {
-                              Get.back();
-                            }
-                          },
-                          svgIconUrl: Utils.getBackButtonPath(context),
-                        ),
-                      ),
-                    )
+                alignment: AlignmentDirectional.centerStart,
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: Utils.screenContentHorizontalPadding,
+                  ),
+                  child: SvgButton(
+                    onTap: () {
+                      if (onPressBackButton != null) {
+                        onPressBackButton!.call();
+                      } else {
+                        Get.back();
+                      }
+                    },
+                    svgIconUrl: Utils.getBackButtonPath(context),
+                  ),
+                ),
+              )
                   : const SizedBox(),
               Align(
                 child: Container(
@@ -82,6 +84,15 @@ class CustomAppBar extends StatelessWidget {
                   ),
                 ),
               ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: Utils.screenContentTopPadding,
+                  ),
+                  child: trailingWidget ?? const SizedBox(),
+                ),
+              )
             ],
           );
         },

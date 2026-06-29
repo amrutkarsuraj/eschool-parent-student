@@ -29,9 +29,10 @@ final List<Menu> homeBottomSheetMenu = [
     title: noticeBoardKey,
   ),
   Menu(
-      menuModuleId: examManagementModuleId.toString(),
-      iconUrl: Utils.getImagePath("exam_icon.svg"),
-      title: examsKey),
+    menuModuleId: examManagementModuleId.toString(),
+    iconUrl: Utils.getImagePath("exam_icon.svg"),
+    title: examsKey,
+  ),
   Menu(
       menuModuleId: examManagementModuleId.toString(),
       iconUrl: Utils.getImagePath("result_icon.svg"),
@@ -56,6 +57,22 @@ final List<Menu> homeBottomSheetMenu = [
       iconUrl: Utils.getImagePath("gallery.svg"),
       title: galleryKey,
       menuModuleId: galleryManagementModuleId.toString()),
+  Menu(
+      iconUrl: Utils.getImagePath("diary.svg"),
+      title: myDiaryKey,
+      menuModuleId: studentManagementModuleId.toString()),
+  Menu(
+      iconUrl: Utils.getImagePath("transportation.svg"),
+      title: transportationKey,
+      menuModuleId: transportationManagementModuleId.toString()),
+  Menu(
+      iconUrl: Utils.getImagePath("Certificate.svg"),
+      title: certificateKey,
+      menuModuleId: certificateManagementModuleId.toString()),
+  Menu(
+      iconUrl: Utils.getImagePath("teachers_icon.svg"),
+      title: teachersKey,
+      menuModuleId: defaultModuleId.toString()),
   Menu(
       iconUrl: Utils.getImagePath("setting_icon.svg"),
       title: settingsKey,

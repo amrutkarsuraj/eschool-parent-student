@@ -1,6 +1,7 @@
 import 'package:eschool/app/routes.dart';
 import 'package:eschool/cubits/appConfigurationCubit.dart';
 import 'package:eschool/cubits/authCubit.dart';
+import 'package:eschool/ui/widgets/appUnderMaintenanceContainer.dart';
 import 'package:eschool/ui/widgets/errorContainer.dart';
 import 'package:eschool/utils/animationConfiguration.dart';
 import 'package:eschool/utils/utils.dart';
@@ -30,6 +31,13 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
+  /// Returns `true` if app or system maintenance mode is active.
+  bool _isUnderMaintenance() {
+    final configCubit = context.read<AppConfigurationCubit>();
+    return configCubit.appUnderMaintenance() ||
+        configCubit.systemUnderMaintenance();
+  }
+
   void navigateToNextScreen() {
     if (context.read<AuthCubit>().state is Unauthenticated) {
       Get.offNamed(Routes.auth);
@@ -48,7 +56,10 @@ class _SplashScreenState extends State<SplashScreen> {
       body: BlocConsumer<AppConfigurationCubit, AppConfigurationState>(
         listener: (context, appConfigState) {
           if (appConfigState is AppConfigurationFetchSuccess) {
-            navigateToNextScreen();
+            // Only navigate if maintenance mode is not active
+            if (!_isUnderMaintenance()) {
+              navigateToNextScreen();
+            }
           }
         },
         builder: (context, appConfigState) {
@@ -63,6 +74,12 @@ class _SplashScreenState extends State<SplashScreen> {
             );
           }
 
+          // Show maintenance screen if either flag is enabled
+          if (appConfigState is AppConfigurationFetchSuccess &&
+              _isUnderMaintenance()) {
+            return const AppUnderMaintenanceContainer();
+          }
+
           return Center(
             child: Animate(
               effects: customItemZoomAppearanceEffects(
@@ -75,18 +92,8 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(25.0),
-                child: Container(
-                  width: 350,
-                  height: 350,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                  ),
-                  child: ClipOval(
-                    child: SvgPicture.asset(
-                      Utils.getImagePath("appLogo.svg"),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                child: SvgPicture.asset(
+                  Utils.getImagePath("appLogo.svg"),
                 ),
               ),
             ),
@@ -96,4 +103,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-

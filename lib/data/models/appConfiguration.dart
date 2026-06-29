@@ -6,7 +6,10 @@ class AppConfiguration {
     required this.iosAppVersion,
     required this.forceAppUpdate,
     required this.appMaintenance,
+    required this.systemMaintenance,
     required this.fileUploadSizeLimit,
+    required this.tagline,
+    required this.title,
   });
   late final String appLink;
   late final String iosAppLink;
@@ -14,7 +17,9 @@ class AppConfiguration {
   late final String iosAppVersion;
   late final String forceAppUpdate;
   late final String appMaintenance;
+  late final String systemMaintenance;
   late final String fileUploadSizeLimit;
+  late final String title;
 
   late final String tagline;
 
@@ -25,7 +30,9 @@ class AppConfiguration {
     iosAppVersion = json['ios_app_version'] ?? "";
     forceAppUpdate = json['force_app_update'] ?? "0";
     appMaintenance = json['app_maintenance'] ?? "0";
+    systemMaintenance = json['system_maintenance'] ?? "0";
     tagline = json['tagline'] ?? "";
+    title = json['title'] ?? "";
     fileUploadSizeLimit = json['file_upload_size_limit'] ?? "";
   }
 }

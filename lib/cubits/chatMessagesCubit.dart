@@ -70,10 +70,9 @@ class ChatMessagesCubit extends Cubit<ChatMessagesState> {
               loadMore: false,
             ),
           );
-        if (kDebugMode) {
-          
-          print("This is the succsssed the messager $response");
-        }
+          if (kDebugMode) {
+            debugPrint("This is the succsssed the messager $response");
+          }
         },
       ).catchError(
         (e) {
@@ -132,6 +131,40 @@ class ChatMessagesCubit extends Cubit<ChatMessagesState> {
       emit(ChatMessagesFetchSuccess(
         response.copyWith(messages: updatedMessages),
       ));
+    }
+  }
+
+  /// Silently fetches page 1 from the API and merges only new messages
+  /// into the existing list. No loading state is emitted, so the UI
+  /// doesn't show a spinner or reset — messages just "pop in" naturally.
+  void syncMissedMessages({required int receiverId}) async {
+    if (state is! ChatMessagesFetchSuccess) return;
+
+    try {
+      final currentResponse = (state as ChatMessagesFetchSuccess).response;
+      final existingIds = currentResponse.messages.map((m) => m.id).toSet();
+
+      final freshResponse = await _chatRepository.getChatMessages(
+        receiverId: receiverId,
+        page: 1,
+      );
+
+      // Find messages that aren't already in our list
+      final newMessages = freshResponse.messages
+          .where((m) => !existingIds.contains(m.id))
+          .toList();
+
+      if (newMessages.isNotEmpty) {
+        // Insert new messages at the front (newest first)
+        final mergedMessages = [...newMessages, ...currentResponse.messages];
+
+        emit(ChatMessagesFetchSuccess(
+          currentResponse.copyWith(messages: mergedMessages),
+        ));
+      }
+    } catch (e) {
+      // Silent sync — don't emit failure, keep existing messages
+      debugPrint('[ChatSync] Failed to sync missed messages: $e');
     }
   }
 }

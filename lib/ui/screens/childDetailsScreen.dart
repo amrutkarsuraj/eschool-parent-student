@@ -78,7 +78,6 @@ class _ChildDetailsScreenState extends State<ChildDetailsScreen> {
         context: context, moduleId: galleryManagementModuleId.toString())) {
       context.read<SchoolGalleryCubit>().fetchSchoolGallery(
           useParentApi: true,
-          childId: widget.student.id,
           sessionYearId: context
                   .read<SchoolConfigurationCubit>()
                   .getSchoolConfiguration()
@@ -174,7 +173,11 @@ class _ChildDetailsScreenState extends State<ChildDetailsScreen> {
                           onTap: () {
                             Get.toNamed(
                               Routes.studentProfile,
-                              arguments: widget.student.id,
+                              arguments: {
+                                'childId': widget.student.id,
+                                'userId': widget.student.userId ??
+                                    widget.student.childUserDetails?.id,
+                              },
                             );
                           },
                           heightAndWidth: boxConstraints.maxWidth * (0.16),

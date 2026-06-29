@@ -1,33 +1,46 @@
+import 'package:eschool/app/routes.dart';
+import 'package:eschool/cubits/authCubit.dart';
+import 'package:eschool/cubits/downloadStudentIdCardCubit.dart';
 import 'package:eschool/cubits/schoolConfigurationCubit.dart';
 import 'package:eschool/cubits/studentAllProfileDetailsCubit.dart';
+import 'package:eschool/cubits/studentSubjectAndSlidersCubit.dart';
 import 'package:eschool/data/models/student.dart';
 import 'package:eschool/data/repositories/studentRepository.dart';
 import 'package:eschool/ui/styles/colors.dart';
+import 'package:eschool/ui/widgets/customCircularProgressIndicator.dart';
 import 'package:eschool/ui/widgets/customShimmerContainer.dart';
 import 'package:eschool/ui/widgets/customUserProfileImageWidget.dart';
 import 'package:eschool/ui/widgets/customAppbar.dart';
 import 'package:eschool/ui/widgets/errorContainer.dart';
 import 'package:eschool/ui/widgets/shimmerLoadingContainer.dart';
 import 'package:eschool/utils/labelKeys.dart';
+import 'package:eschool/utils/systemModules.dart';
 import 'package:eschool/utils/utils.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:open_filex/open_filex.dart';
+import 'dart:convert';
 
 class StudentProfileScreen extends StatefulWidget {
   final int? childId;
+  final int? userId;
 
-  const StudentProfileScreen({Key? key, this.childId}) : super(key: key);
+  const StudentProfileScreen({Key? key, this.childId, this.userId})
+      : super(key: key);
 
   @override
   State<StudentProfileScreen> createState() => _StudentProfileScreenState();
 
   static Widget routeInstance() {
+    final arguments = Get.arguments as Map<String, dynamic>?;
     return BlocProvider(
       create: (context) => StudentAllProfileDetailsCubit(StudentRepository()),
       child: StudentProfileScreen(
-        childId: Get.arguments as int?,
+        childId: arguments?['childId'] as int?,
+        userId: arguments?['userId'] as int?,
       ),
     );
   }
@@ -47,70 +60,196 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         useParentApi: widget.childId != null, childId: widget.childId);
   }
 
+  /// Opens a file in the file viewer screen
+  void _openFile(String fileUrl, String fileName) {
+    if (fileUrl.isEmpty) return;
+
+    Get.toNamed(
+      Routes.fileViewer,
+      arguments: {
+        'fileUrl': fileUrl,
+        'fileName': fileName,
+      },
+    );
+  }
+
+  /// Formats the display value for different field types
+  String _formatFieldValue(String? data, String? fieldType) {
+    if (data == null || data.isEmpty) {
+      return Utils.formatEmptyValue('');
+    }
+
+    // For checkbox fields, parse JSON array and display as comma-separated values
+    if (fieldType?.toLowerCase() == 'checkbox') {
+      try {
+        final List<dynamic> values = jsonDecode(data);
+        return values.join(', ');
+      } catch (e) {
+        return data;
+      }
+    }
+
+    return Utils.formatEmptyValue(data);
+  }
+
   Widget _buildProfileDetailsTile({
     required String label,
     required String value,
     required String iconUrl,
     Color? iconColor,
+    VoidCallback? onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12.5),
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1a212121),
-                  offset: Offset(0, 10),
-                  blurRadius: 16,
+    final Widget content = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12.5),
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1a212121),
+                offset: Offset(0, 10),
+                blurRadius: 16,
+              )
+            ],
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          child: SvgPicture.asset(
+            iconUrl,
+            theme: SvgTheme(
+                currentColor:
+                    iconColor ?? Theme.of(context).scaffoldBackgroundColor),
+            colorFilter: iconColor == null
+                ? null
+                : ColorFilter.mode(iconColor, BlendMode.srcIn),
+          ),
+        ),
+        SizedBox(
+          width: MediaQuery.of(context).size.width * (0.05),
+        ),
+        Flexible(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 3.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12.0,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14.0,
+                  ),
                 )
               ],
-              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14.0),
+      child: onTap != null
+          ? InkWell(
+              onTap: onTap,
               borderRadius: BorderRadius.circular(15.0),
-            ),
-            child: SvgPicture.asset(
-              iconUrl,
-              theme: SvgTheme(
-                  currentColor:
-                      iconColor ?? Theme.of(context).scaffoldBackgroundColor),
-              colorFilter: iconColor == null
-                  ? null
-                  : ColorFilter.mode(iconColor, BlendMode.srcIn),
+              child: content,
+            )
+          : content,
+    );
+  }
+
+  void _showIdCardDownloadDialog({int? userId}) {
+    Get.dialog(
+      BlocProvider(
+        create: (context) => DownloadStudentIdCardCubit(StudentRepository()),
+        child: DownloadStudentIdCardDialog(userId: userId),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  Widget _buildIdCardButton({int? userId}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showIdCardDownloadDialog(userId: userId),
+        borderRadius: BorderRadius.circular(8.0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 8.0,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(8.0),
+            border: Border.all(
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.15),
             ),
           ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width * (0.05),
-          ),
-          Flexible(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 3.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w400,
-                      fontSize: 12.0,
-                    ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 18,
+                width: 18,
+                child: SvgPicture.asset(
+                  Utils.getImagePath("school_idcard.svg"),
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.secondary,
+                    BlendMode.srcIn,
                   ),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14.0,
-                    ),
-                  )
-                ],
+                ),
               ),
-            ),
+              const SizedBox(width: 8.0),
+              Text(
+                Utils.getTranslatedLabel(idCardKey),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: Colors.white,
+        content: Text(Utils.getTranslatedLabel(sureToLogoutKey)),
+        actions: [
+          CupertinoButton(
+            child: Text(Utils.getTranslatedLabel(yesKey)),
+            onPressed: () {
+              context.read<StudentSubjectsAndSlidersCubit>().clearSubjects();
+              context.read<AuthCubit>().signOut();
+              Get.back();
+              Get.offNamed(Routes.auth);
+            },
+          ),
+          CupertinoButton(
+            child: Text(Utils.getTranslatedLabel(noKey)),
+            onPressed: () => Get.back(),
           ),
         ],
       ),
@@ -122,6 +261,19 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       alignment: Alignment.topCenter,
       child: CustomAppBar(
         title: Utils.getTranslatedLabel(profileKey),
+        // Only show logout button when viewing own profile (not parent viewing child)
+        trailingWidget: widget.childId == null
+            ? GestureDetector(
+                onTap: _showLogoutDialog,
+                child: SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: SvgPicture.asset(
+                    Utils.getImagePath("logout_icon.svg"),
+                  ),
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -138,15 +290,30 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         ),
         child: Column(
           children: [
-            Container(
-              width: MediaQuery.of(context).size.width * (0.25),
-              height: MediaQuery.of(context).size.width * (0.25),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              child: CustomUserProfileImageWidget(
-                profileUrl: studentDetails.image ?? "",
+            GestureDetector(
+              onTap: () {
+                final imageUrl = studentDetails.image ?? '';
+                if (imageUrl.isNotEmpty) {
+                  Utils.showImagePreview(
+                    context: context,
+                    imageUrl: imageUrl,
+                    heroTag: 'student_profile_image',
+                  );
+                }
+              },
+              child: Hero(
+                tag: 'student_profile_image',
+                child: Container(
+                  width: MediaQuery.of(context).size.width * (0.25),
+                  height: MediaQuery.of(context).size.width * (0.25),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  child: CustomUserProfileImageWidget(
+                    profileUrl: studentDetails.image ?? "",
+                  ),
+                ),
               ),
             ),
             const SizedBox(
@@ -170,6 +337,17 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 fontSize: 12.0,
               ),
             ),
+            const SizedBox(
+              height: 12.0,
+            ),
+            if (Utils.isModuleEnabled(
+              context: context,
+              moduleId: certificateManagementModuleId.toString(),
+            ))
+              _buildIdCardButton(
+                  userId: widget.userId ??
+                      studentDetails.userId ??
+                      studentDetails.childUserDetails?.id),
             const SizedBox(
               height: 10.0,
             ),
@@ -277,11 +455,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   ),
                   _buildProfileDetailsTile(
                     label: Utils.getTranslatedLabel(dateOfBirthKey),
-                    value: Utils.formatEmptyValue(
-                        DateTime.tryParse(studentDetails.dob ?? "") == null
-                            ? "-"
-                            : Utils.formatDate(
-                                DateTime.tryParse(studentDetails.dob!)!)),
+                    value: Utils.formatEmptyValue(studentDetails.dob ?? ""),
                     iconUrl: Utils.getImagePath("user_pro_dob_icon.svg"),
                   ),
                   _buildProfileDetailsTile(
@@ -302,20 +476,31 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     ),
                     iconUrl: Utils.getImagePath("user_pro_address_icon.svg"),
                   ),
-                  ...(studentDetails.studentProfileExtraDetails ?? [])
-                      .map(
-                        (details) => _buildProfileDetailsTile(
-                          label: Utils.getTranslatedLabel(
-                            details.formField?.name ?? "",
-                          ),
-                          value: Utils.formatEmptyValue(
-                            details.data ?? "",
-                          ),
-                          iconColor: Theme.of(context).scaffoldBackgroundColor,
-                          iconUrl: Utils.getImagePath("info_pro_icon.svg"),
-                        ),
-                      )
-                      .toList(),
+                  ...(studentDetails.studentProfileExtraDetails ?? []).map(
+                    (details) {
+                      final fieldType = details.formField?.type;
+                      final isFileType = fieldType?.toLowerCase() == 'file';
+                      final fileUrl = details.fileUrl ?? '';
+
+                      return _buildProfileDetailsTile(
+                        label: details.formField?.name ?? "",
+                        value: isFileType && fileUrl.isNotEmpty
+                            ? Utils.getTranslatedLabel(tapToViewFileKey)
+                            : _formatFieldValue(
+                                details.data,
+                                fieldType,
+                              ),
+                        iconColor: Theme.of(context).scaffoldBackgroundColor,
+                        iconUrl: Utils.getIconForFieldType(fieldType),
+                        onTap: isFileType && fileUrl.isNotEmpty
+                            ? () => _openFile(
+                                  fileUrl,
+                                  details.formField?.name ?? 'File',
+                                )
+                            : null,
+                      );
+                    },
+                  ).toList(),
                   SizedBox(
                     height: MediaQuery.of(context).size.height * (0.1),
                   ),
@@ -449,6 +634,66 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           }),
           _buildAppBar(),
         ],
+      ),
+    );
+  }
+}
+
+class DownloadStudentIdCardDialog extends StatefulWidget {
+  final int? userId;
+
+  const DownloadStudentIdCardDialog({super.key, this.userId});
+
+  @override
+  State<DownloadStudentIdCardDialog> createState() =>
+      _DownloadStudentIdCardDialogState();
+}
+
+class _DownloadStudentIdCardDialogState
+    extends State<DownloadStudentIdCardDialog> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      context
+          .read<DownloadStudentIdCardCubit>()
+          .downloadStudentIdCard(userId: widget.userId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<DownloadStudentIdCardCubit, DownloadStudentIdCardState>(
+      listener: (context, state) {
+        if (state is DownloadStudentIdCardSuccess) {
+          Get.back();
+          OpenFilex.open(state.downloadedFilePath);
+        } else if (state is DownloadStudentIdCardFailure) {
+          Utils.showCustomSnackBar(
+            context: context,
+            errorMessage: Utils.getTranslatedLabel(state.errorMessage),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          );
+          Get.back();
+        }
+      },
+      child: AlertDialog(
+        title: Row(
+          children: [
+            CustomCircularProgressIndicator(
+              widthAndHeight: 15.0,
+              strokeWidth: 2.0,
+              indicatorColor: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 10.0),
+            Flexible(
+              child: Text(
+                Utils.getTranslatedLabel(downloadingIdCardKey),
+                style: const TextStyle(fontSize: 15.0),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

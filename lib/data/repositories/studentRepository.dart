@@ -65,13 +65,13 @@ class StudentRepository {
     try {
       final result =
           await Api.get(url: Api.studentSubjects, useAuthToken: true);
-      print("xcvdfgrdfgfgrgttrgrgt${result}");
+
       final coreSubjects = (result['data']['core_subject'] as List).map((e) {
         return CoreSubject.fromJson(json: Map.from(e ?? {}));
       }).toList();
 
       // if (kDebugMode) {
-      //   print("Result of student subjects api : $result");
+      //   debugPrint("Result of student subjects api : $result");
       // }
 
       //If class have any elective subjects then of key of elective subject will be there
@@ -161,8 +161,11 @@ class StudentRepository {
 
   Future<Map<String, dynamic>> fetchExamResults({
     int? page,
+    int? resultId,
     required bool useParentApi,
-    required int childId,
+    int? childId,
+    int? examId,
+    int? sessionYearId,
   }) async {
     try {
       Map<String, dynamic> queryParameters = {"page": page ?? 0};
@@ -171,6 +174,15 @@ class StudentRepository {
       }
       if (useParentApi) {
         queryParameters.addAll({"child_id": childId});
+      }
+      if (resultId != null) {
+        queryParameters.addAll({"result_id": resultId});
+      }
+      if (examId != null) {
+        queryParameters.addAll({"exam_id": examId});
+      }
+      if (sessionYearId != null) {
+        queryParameters.addAll({"session_year_id": sessionYearId});
       }
       final result = await Api.get(
         url: useParentApi ? Api.getStudentResultsParent : Api.studentResults,
@@ -185,103 +197,48 @@ class StudentRepository {
       };
     } catch (e, stc) {
       if (kDebugMode) {
-        print(stc.toString());
+        debugPrint(stc.toString());
       }
       throw ApiException(e.toString());
     }
   }
 
-  // Future<Map<String, dynamic>> fetchAttendance({
-  //   required int month,
-  //   required int year,
-  //   required bool useParentApi,
-  //   required int childId,
-  // }) async {
-  //   try {
-  //     Map<String, dynamic> queryParameters = {
-  //       "month": month,
-  //       "year": year,
-  //     };
+  Future<Map<String, dynamic>> fetchAttendance({
+    required int month,
+    required int year,
+    required bool useParentApi,
+    required int childId,
+  }) async {
+    try {
+      Map<String, dynamic> queryParameters = {
+        "month": month,
+        "year": year,
+      };
 
-  //     if (useParentApi) {
-  //       queryParameters.addAll({"child_id": childId});
-  //     }
+      if (useParentApi) {
+        queryParameters.addAll({"child_id": childId});
+      }
 
-  //     final result = await Api.get(
-  //       url: useParentApi
-  //           ? Api.getStudentAttendanceParent
-  //           : Api.getStudentAttendance,
-  //       queryParameters: queryParameters,
-  //       useAuthToken: true,
-  //     );
+      final result = await Api.get(
+        url: useParentApi
+            ? Api.getStudentAttendanceParent
+            : Api.getStudentAttendance,
+        queryParameters: queryParameters,
+        useAuthToken: true,
+      );
 
-  //     return {
-  //       "attendanceDays": (result['data']['attendance'] as List)
-  //           .map((attendance) => AttendanceDay.fromJson(Map.from(attendance)))
-  //           .toList(),
-  //       "sessionYear":
-  //           SessionYear.fromJson(Map.from(result['data']['session_year'] ?? {}))
-  //     };
-  //   } catch (e, st) {
-  //     print("This is the st : ${st}");
-  //     throw ApiException(e.toString());
-  //   }
-  // }
-Future<Map<String, dynamic>> fetchAttendance({
-  required int month,
-  required int year,
-  required bool useParentApi,
-  required int childId,
-}) async {
-  try {
-    Map<String, dynamic> queryParameters = {
-      "month": month,
-      "year": year,
-    };
-
-    if (useParentApi) {
-      queryParameters.addAll({"child_id": childId});
+      return {
+        "attendanceDays": (result['data']['attendance'] as List)
+            .map((attendance) => AttendanceDay.fromJson(Map.from(attendance)))
+            .toList(),
+        "sessionYear":
+            SessionYear.fromJson(Map.from(result['data']['session_year'] ?? {}))
+      };
+    } catch (e, st) {
+      debugPrint("This is the st : ${st}");
+      throw ApiException(e.toString());
     }
-
-    // 🔹 Print query parameters
-    print("📡 Fetching Attendance | useParentApi=$useParentApi | queryParameters=$queryParameters");
-
-    // 🔹 Print URL
-    final url = useParentApi ? Api.getStudentAttendanceParent : Api.getStudentAttendance;
-    print("📡 Final URL: $url");
-
-    // 🔹 Call API with prints inside Api.get
-    final result = await Api.get(
-      url: url,
-      queryParameters: queryParameters,
-      useAuthToken: true,
-    );
-
-    // 🔹 Print raw API response
-    print("📌 Attendance API Response: $result");
-
-    // 🔹 Map result to models
-    final attendanceDays = (result['data']['attendance'] as List)
-        .map((attendance) => AttendanceDay.fromJson(Map.from(attendance)))
-        .toList();
-
-    final sessionYear = SessionYear.fromJson(
-        Map.from(result['data']['session_year'] ?? {}));
-
-    // 🔹 Print mapped data
-    print("📌 Mapped Attendance Days: $attendanceDays");
-    print("📌 Mapped Session Year: $sessionYear");
-
-    return {
-      "attendanceDays": attendanceDays,
-      "sessionYear": sessionYear,
-    };
-  } catch (e, st) {
-    print("❌ Error occurred: $e");
-    print("📄 Stack trace: $st");
-    throw ApiException(e.toString());
   }
-}
 
   //
   //This method is used to fetch exams list
@@ -304,7 +261,7 @@ Future<Map<String, dynamic>> fetchAttendance({
           .toList();
     } catch (e, st) {
       if (kDebugMode) {
-        print("This is the st : ${st}");
+        debugPrint("This is the st : ${st}");
       }
       throw ApiException(e.toString());
     }
@@ -347,7 +304,7 @@ Future<Map<String, dynamic>> fetchAttendance({
         },
       );
       if (kDebugMode) {
-        print("response -- ${result['data'] as List}");
+        debugPrint("response -- ${result['data'] as List}");
       }
       return (result['data'] as List)
           .map((e) => PaidFees.fromJson(Map.from(e)))
@@ -358,17 +315,23 @@ Future<Map<String, dynamic>> fetchAttendance({
   }
   */
 
-  Future<Uint8List> downloadFeesReceipt({
-    required int feesPaidId,
-  }) async {
+  Future<Uint8List> downloadIdCard({int? userId}) async {
     try {
       final result = await Api.get(
-        url: Api.downloadFeesPaidReceiptParent,
+        url: Api.downloadStudentIdCard,
         useAuthToken: true,
-        queryParameters: {
-          "fees_paid_id": feesPaidId,
-        },
+        queryParameters: userId != null ? {"user_id": userId} : null,
       );
+
+      // When data is null the server has no ID card settings configured.
+      // Surface the API message so the UI can display it.
+      if (result['data'] == null || result['pdf'] == null) {
+        throw ApiException(
+          result['message']?.toString() ??
+              ErrorMessageKeysAndCode.defaultErrorMessageCode,
+        );
+      }
+
       return base64Decode(result['pdf']);
     } catch (e) {
       throw ApiException(e.toString());
@@ -487,7 +450,7 @@ Future<Map<String, dynamic>> fetchAttendance({
       return statusOfTransaction;
     } on PlatformException catch (err) {
       if (kDebugMode) {
-        print(err);
+        debugPrint(err.toString());
       }
       throw ApiException(
         StripeService.getPlatformExceptionErrorResult(err).message ??
@@ -495,7 +458,7 @@ Future<Map<String, dynamic>> fetchAttendance({
       );
     } catch (error) {
       if (kDebugMode) {
-        print(error);
+        debugPrint(error.toString());
       }
       throw ApiException(ErrorMessageKeysAndCode.defaultErrorMessageCode);
     }

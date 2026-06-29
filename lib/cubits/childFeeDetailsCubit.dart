@@ -11,8 +11,13 @@ class ChildFeeDetailsFetchInProgress extends ChildFeeDetailsState {}
 class ChildFeeDetailsFetchSuccess extends ChildFeeDetailsState {
   final List<ChildFeeDetails> fees;
   final int childId;
+  final int? sessionYearId;
 
-  ChildFeeDetailsFetchSuccess({required this.fees, required this.childId});
+  ChildFeeDetailsFetchSuccess({
+    required this.fees,
+    required this.childId,
+    this.sessionYearId,
+  });
 }
 
 class ChildFeeDetailsFetchFailure extends ChildFeeDetailsState {
@@ -26,12 +31,20 @@ class ChildFeeDetailsCubit extends Cubit<ChildFeeDetailsState> {
 
   ChildFeeDetailsCubit(this._feeRepository) : super(ChildFeeDetailsInitial());
 
-  void fetchChildFeeDetails({required int childId}) async {
+  void fetchChildFeeDetails({
+    required int childId,
+    int? sessionYearId,
+  }) async {
     try {
       emit(ChildFeeDetailsFetchInProgress());
       emit(ChildFeeDetailsFetchSuccess(
+        childId: childId,
+        sessionYearId: sessionYearId,
+        fees: await _feeRepository.fetchChildFeeDetails(
           childId: childId,
-          fees: await _feeRepository.fetchChildFeeDetails(childId: childId)));
+          sessionYearId: sessionYearId,
+        ),
+      ));
     } catch (e) {
       emit(ChildFeeDetailsFetchFailure(e.toString()));
     }
@@ -39,8 +52,11 @@ class ChildFeeDetailsCubit extends Cubit<ChildFeeDetailsState> {
 
   void refreshFees() {
     if (state is ChildFeeDetailsFetchSuccess) {
+      final successState = state as ChildFeeDetailsFetchSuccess;
       fetchChildFeeDetails(
-          childId: (state as ChildFeeDetailsFetchSuccess).childId);
+        childId: successState.childId,
+        sessionYearId: successState.sessionYearId,
+      );
     }
   }
 }

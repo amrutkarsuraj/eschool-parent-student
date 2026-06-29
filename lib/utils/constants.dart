@@ -6,19 +6,17 @@ import 'package:eschool/utils/labelKeys.dart';
 const String baseUrl = "https://vschool.online";
 // const String baseUrl = "https://eschool-saas.wrteam.me";
 
-//TEST: https://eschoolsaas.thewrteam.in
-//Producttion : https://eschool-saas.wrteam.me
 const String databaseUrl = "$baseUrl/api/";
 
-// our Socket url
-// const String socketUrl = "ws://193.203.162.252:8090";
-const String socketUrl = "ws://103.180.237.113:8090";
+// Reverb WebSocket configuration
+const String reverbUrl =
+    "ws://stage-eschool-saas.wrteam.net:9090/app/e2mhe9gu4tb2x2vkncxa";
 
 //error message display duration
 const Duration errorMessageDisplayDuration = Duration(milliseconds: 3000);
 
-//Web socket ping interval
-const Duration socketPingInterval = Duration(seconds: 275);
+// Reverb reconnect base delay (used with exponential backoff)
+const Duration reverbReconnectDelay = Duration(seconds: 3);
 
 //home menu bottom sheet animation duration
 const Duration homeMenuBottomSheetAnimationDuration = Duration(
@@ -37,29 +35,22 @@ const int maxAnnouncementDescriptionLength = 100;
 //notification channel keys
 const String notificationChannelKey = "basic_channel";
 
-//Set demo version this when upload this code to codecanyon
-const bool isDemoVersion = false;
-
-//to enable and disable default credentials in login page
+// //to enable and disable default credentials in login page
 const bool showDefaultCredentials = true;
-//default credentials of student
-const String defaultStudentGRNumber = "";
-// const String defaultStudentGRNumber = "20250101";
-// const String defaultStudentGRNumber = "2022-2312509";
-const String defaultStudentPassword = "";
-// const String defaultStudentPassword = "10082008";
-// const String defaultStudentPassword = "22112006";
+
+// //default credentials of student
+const String defaultStudentGRNumber = "2022-2312509";
+const String defaultStudentPassword = "22112006";
 //default credentials of parent
-const String defaultParentEmail = "";
-// const String defaultParentEmail = "ary175435@gmail.com";
-// const String defaultParentEmail = "AmberMWayt@gustr.com";
-const String defaultParentPassword = "";
-// const String defaultParentPassword = "9209963242";
-// const String defaultParentPassword = "8200727077";
+const String defaultParentEmail = "AmberMWayt@gustr.com";
+const String defaultParentPassword = "8200727077";
 // Default school code
-const String defaultSchoolCode = "";
-// const String defaultSchoolCode = "SCH20251";
-// const String defaultSchoolCode = "SCH202412";
+const String defaultSchoolCode = "SCH202412";
+
+/// When [true], screenshots and screen recording are blocked on
+/// sensitive screens (Online Exam, Payment WebView).
+/// Set to [false] to disable screen protection.
+const bool isScreenProtectionEnabled = true;
 
 //animations configuration
 //if this is false all item appearance animations will be turned off
@@ -69,6 +60,9 @@ const int listItemAnimationDelayInMilliseconds = 100;
 const int itemFadeAnimationDurationInMilliseconds = 250;
 const int itemZoomAnimationDurationInMilliseconds = 200;
 const int itemBouncScaleAnimationDurationInMilliseconds = 200;
+const double appContentHorizontalPadding = 15.0;
+double bottomsheetBorderRadius = 15.0;
+double topPaddingOfErrorAndLoadingContainer = 150;
 
 String getExamStatusTypeKey(String examStatus) {
   if (examStatus == "0") {
@@ -111,9 +105,6 @@ const String pendingTransactionStatusKey = "pending";
 const String failedTransactionStatusKey = "failed";
 const String succeedTransactionStatusKey = "succeed";
 
-///[Socket events]
-enum SocketEvent { register, message }
-
 List<String> months = [
   januaryKey,
   februaryKey,
@@ -127,4 +118,13 @@ List<String> months = [
   octoberKey,
   novemberKey,
   decemberKey,
+];
+
+/// Transport Report Issue Label Keys
+const List<String> transportReportIssueLabelKeys = [
+  unsafeDrivingKey,
+  unauthorizedPersonKey,
+  missedPickupKey,
+  uncleanBusInteriorKey,
+  busBreakdownKey,
 ];

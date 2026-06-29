@@ -115,6 +115,32 @@ class AuthCubit extends Cubit<AuthState> {
     return false;
   }
 
+  Future<void> updateParentDetails() async {
+    if (state is Authenticated) {
+      final currentState = state as Authenticated;
+      try {
+        final updatedParent = await authRepository.getParentData();
+
+        // Update the parent details in local storage
+        await authRepository.setParentDetails(updatedParent);
+
+        // Emit new state with updated parent data
+        emit(
+          Authenticated(
+            schoolCode: currentState.schoolCode,
+            jwtToken: currentState.jwtToken,
+            isStudent: currentState.isStudent,
+            student: currentState.student,
+            parent: updatedParent,
+          ),
+        );
+      } catch (e) {
+        // If update fails, keep the current state
+        rethrow;
+      }
+    }
+  }
+
   void signOut() {
     authRepository.signOutUser();
     emit(Unauthenticated());

@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:math';
-
+import 'package:open_filex/open_filex.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:eschool/utils/api.dart';
@@ -21,7 +21,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -96,12 +95,15 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    print(
+        "🟢 ChatScreen: Opened chat with receiverId: ${widget.receiverId}, name: ${widget.teacherName}");
     _scrollController.addListener(_scrollListener);
     _fetchChatMessages();
   }
 
   @override
   void dispose() {
+    print("🔴 ChatScreen: Closing chat with receiverId: ${widget.receiverId}");
     _scrollController.removeListener(_scrollListener);
     super.dispose();
   }
@@ -110,17 +112,20 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_scrollController.position.maxScrollExtent ==
         _scrollController.offset) {
       if (context.read<ChatMessagesCubit>().hasMore) {
+        print("📜 ChatScreen: Loading more messages...");
         context.read<ChatMessagesCubit>().fetchMoreChatMessages(
-              receiverId: widget.receiverId,
-            );
+          receiverId: widget.receiverId,
+        );
       }
     }
   }
 
   void _fetchChatMessages() {
+    print(
+        "🔄 ChatScreen: Fetching messages for receiverId: ${widget.receiverId}");
     context.read<ChatMessagesCubit>().fetchChatMessages(
-          receiverId: widget.receiverId,
-        );
+      receiverId: widget.receiverId,
+    );
   }
 
   Widget _buildAppBar() {
@@ -153,8 +158,8 @@ class _ChatScreenState extends State<ChatScreen> {
               listener: (context, status) {
                 if (status == ChatDeleteMessageStatus.success) {
                   context.read<ChatMessagesCubit>().deleteMessages(
-                        _selectedMessages.toList(),
-                      );
+                    _selectedMessages.toList(),
+                  );
 
                   setState(() {
                     _isMessageLongPressed = false;
@@ -165,8 +170,8 @@ class _ChatScreenState extends State<ChatScreen> {
               child: IconButton(
                 onPressed: () {
                   context.read<ChatDeleteMessageCubit>().deleteMessage(
-                        messagesIds: _selectedMessages.toList(),
-                      );
+                    messagesIds: _selectedMessages.toList(),
+                  );
                 },
                 icon: Icon(
                   Icons.delete_outlined,
@@ -184,9 +189,9 @@ class _ChatScreenState extends State<ChatScreen> {
     void onBack() {
       Get.back(
         result: (
-          lastMessage: lastMessage,
-          lastMessageTime: lastMessageTime,
-          unreadCount: unreadCount,
+        lastMessage: lastMessage,
+        lastMessageTime: lastMessageTime,
+        unreadCount: unreadCount,
         ),
       );
     }
@@ -214,77 +219,77 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: _isMessageLongPressed
                         ? messagesSelectAppBar()
                         : Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              SvgButton(
-                                height: 20,
-                                width: 20,
-                                onTap: onBack,
-                                svgIconUrl: Utils.getBackButtonPath(context),
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SvgButton(
+                          height: 20,
+                          width: 20,
+                          onTap: onBack,
+                          svgIconUrl: Utils.getBackButtonPath(context),
+                        ),
+                        const SizedBox(width: 10),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.tertiary,
+                            ),
+                            alignment: Alignment.center,
+                            height: 48,
+                            width: 48,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(48),
+                              child: CachedNetworkImage(
+                                imageUrl: widget.image,
+                                height: 48,
+                                width: 48,
                               ),
-                              const SizedBox(width: 10),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 5.0),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 5.0),
+                            child: Column(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.teacherName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 17.0,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.tertiary,
-                                  ),
-                                  alignment: Alignment.center,
-                                  height: 48,
-                                  width: 48,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(48),
-                                    child: CachedNetworkImage(
-                                      imageUrl: widget.image,
-                                      height: 48,
-                                      width: 48,
-                                    ),
+                                    ).scaffoldBackgroundColor,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 15),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 5.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        widget.teacherName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 17.0,
-                                          color: Theme.of(
-                                            context,
-                                          ).scaffoldBackgroundColor,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 1.0),
-                                      Text(
-                                        widget.appbarSubtitle,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          height: 1.0,
-                                          fontSize: 11.5,
-                                          color: Theme.of(
-                                            context,
-                                          ).scaffoldBackgroundColor,
-                                        ),
-                                      ),
-                                    ],
+                                const SizedBox(height: 1.0),
+                                Text(
+                                  widget.appbarSubtitle,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    height: 1.0,
+                                    fontSize: 11.5,
+                                    color: Theme.of(
+                                      context,
+                                    ).scaffoldBackgroundColor,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                            ],
+                              ],
+                            ),
                           ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -415,7 +420,7 @@ class _ChatScreenState extends State<ChatScreen> {
             : AlignmentDirectional.centerStart,
         child: Column(
           crossAxisAlignment:
-              sendByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          sendByMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -441,7 +446,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     painter: MessageContainerPainter(
                       radius: radius,
                       color:
-                          sendByMe ? colorScheme.surface : colorScheme.primary,
+                      sendByMe ? colorScheme.surface : colorScheme.primary,
                     ),
                     child: Container(
                       padding: EdgeInsetsDirectional.only(
@@ -468,162 +473,162 @@ class _ChatScreenState extends State<ChatScreen> {
                                       return Padding(
                                         padding: EdgeInsets.only(bottom: 10),
                                         child: (e.fileType == 'jpg' ||
-                                                e.fileType == 'jpeg' ||
-                                                e.fileType == 'png')
+                                            e.fileType == 'jpeg' ||
+                                            e.fileType == 'png')
                                             ? Stack(
-                                                children: [
-                                                  ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                      8,
-                                                    ),
-                                                    child: CachedNetworkImage(
-                                                      width: 256,
-                                                      height: 256,
-                                                      imageUrl: e.file,
-                                                      fit: BoxFit.cover,
-                                                    ),
-                                                  ),
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                              BorderRadius.circular(
+                                                8,
+                                              ),
+                                              child: CachedNetworkImage(
+                                                width: 256,
+                                                height: 256,
+                                                imageUrl: e.file,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
 
-                                                  /// Download button
-                                                  PositionedDirectional(
-                                                    top: 15,
-                                                    end: 15,
-                                                    child: InkWell(
-                                                      onTap: () async {
-                                                        final path =
-                                                            await _downloadFromUrl(
-                                                          e.file,
-                                                        );
+                                            /// Download button
+                                            PositionedDirectional(
+                                              top: 15,
+                                              end: 15,
+                                              child: InkWell(
+                                                onTap: () async {
+                                                  final path =
+                                                  await _downloadFromUrl(
+                                                    e.file,
+                                                  );
 
-                                                        if (path != null) {
-                                                          await OpenFilex.open(
-                                                            path,
-                                                          );
-                                                        }
-                                                      },
-                                                      child:
-                                                          _downloadingFiles[
-                                                                      e.file] ==
-                                                                  true
-                                                              ? SizedBox(
-                                                                  width: 24,
-                                                                  height: 24,
-                                                                  child:
-                                                                      CircularProgressIndicator(
-                                                                    strokeWidth:
-                                                                        2,
-                                                                    valueColor:
-                                                                        AlwaysStoppedAnimation<
-                                                                            Color>(
-                                                                      sendByMe
-                                                                          ? colorScheme
-                                                                              .secondary
-                                                                          : Theme
-                                                                              .of(
-                                                                              context,
-                                                                            ).scaffoldBackgroundColor,
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              : Icon(
-                                                                  Icons
-                                                                      .download_rounded,
-                                                                  size: 24,
-                                                                  color: sendByMe
-                                                                      ? colorScheme.secondary
-                                                                      : Theme.of(
-                                                                          context,
-                                                                        ).scaffoldBackgroundColor,
-                                                                ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              )
-                                            : Container(
-                                                decoration: BoxDecoration(),
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons
-                                                          .insert_drive_file_outlined,
-                                                      size: 24,
-                                                      color: sendByMe
+                                                  if (path != null) {
+                                                    await OpenFilex.open(
+                                                      path,
+                                                    );
+                                                  }
+                                                },
+                                                child:
+                                                _downloadingFiles[
+                                                e.file] ==
+                                                    true
+                                                    ? SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child:
+                                                  CircularProgressIndicator(
+                                                    strokeWidth:
+                                                    2,
+                                                    valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(
+                                                      sendByMe
                                                           ? colorScheme
-                                                              .secondary
-                                                          : Theme.of(
-                                                              context,
-                                                            ).scaffoldBackgroundColor,
+                                                          .secondary
+                                                          : Theme
+                                                          .of(
+                                                        context,
+                                                      ).scaffoldBackgroundColor,
                                                     ),
-                                                    const SizedBox(width: 8),
-                                                    Expanded(
-                                                      child: Text(
-                                                        e.file.split('/').last,
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: TextStyle(
-                                                          color: sendByMe
-                                                              ? colorScheme
-                                                                  .secondary
-                                                              : Theme.of(
-                                                                  context,
-                                                                ).scaffoldBackgroundColor,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    InkWell(
-                                                      onTap: () async {
-                                                        final path =
-                                                            await _downloadFromUrl(
-                                                          e.file,
-                                                        );
-
-                                                        if (path != null) {
-                                                          await OpenFilex.open(
-                                                            path,
-                                                          );
-                                                        }
-                                                      },
-                                                      child:
-                                                          _downloadingFiles[
-                                                                      e.file] ==
-                                                                  true
-                                                              ? SizedBox(
-                                                                  width: 24,
-                                                                  height: 24,
-                                                                  child:
-                                                                      CircularProgressIndicator(
-                                                                    strokeWidth:
-                                                                        2,
-                                                                    valueColor:
-                                                                        AlwaysStoppedAnimation<
-                                                                            Color>(
-                                                                      sendByMe
-                                                                          ? colorScheme
-                                                                              .secondary
-                                                                          : Theme
-                                                                              .of(
-                                                                              context,
-                                                                            ).scaffoldBackgroundColor,
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              : Icon(
-                                                                  Icons
-                                                                      .download_rounded,
-                                                                  size: 24,
-                                                                  color: sendByMe
-                                                                      ? colorScheme.secondary
-                                                                      : Theme.of(
-                                                                          context,
-                                                                        ).scaffoldBackgroundColor,
-                                                                ),
-                                                    ),
-                                                  ],
+                                                  ),
+                                                )
+                                                    : Icon(
+                                                  Icons
+                                                      .download_rounded,
+                                                  size: 24,
+                                                  color: sendByMe
+                                                      ? colorScheme.secondary
+                                                      : Theme.of(
+                                                    context,
+                                                  ).scaffoldBackgroundColor,
                                                 ),
                                               ),
+                                            ),
+                                          ],
+                                        )
+                                            : Container(
+                                          decoration: BoxDecoration(),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons
+                                                    .insert_drive_file_outlined,
+                                                size: 24,
+                                                color: sendByMe
+                                                    ? colorScheme
+                                                    .secondary
+                                                    : Theme.of(
+                                                  context,
+                                                ).scaffoldBackgroundColor,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  e.file.split('/').last,
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow
+                                                      .ellipsis,
+                                                  style: TextStyle(
+                                                    color: sendByMe
+                                                        ? colorScheme
+                                                        .secondary
+                                                        : Theme.of(
+                                                      context,
+                                                    ).scaffoldBackgroundColor,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              InkWell(
+                                                onTap: () async {
+                                                  final path =
+                                                  await _downloadFromUrl(
+                                                    e.file,
+                                                  );
+
+                                                  if (path != null) {
+                                                    await OpenFilex.open(
+                                                      path,
+                                                    );
+                                                  }
+                                                },
+                                                child:
+                                                _downloadingFiles[
+                                                e.file] ==
+                                                    true
+                                                    ? SizedBox(
+                                                  width: 24,
+                                                  height: 24,
+                                                  child:
+                                                  CircularProgressIndicator(
+                                                    strokeWidth:
+                                                    2,
+                                                    valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(
+                                                      sendByMe
+                                                          ? colorScheme
+                                                          .secondary
+                                                          : Theme
+                                                          .of(
+                                                        context,
+                                                      ).scaffoldBackgroundColor,
+                                                    ),
+                                                  ),
+                                                )
+                                                    : Icon(
+                                                  Icons
+                                                      .download_rounded,
+                                                  size: 24,
+                                                  color: sendByMe
+                                                      ? colorScheme.secondary
+                                                      : Theme.of(
+                                                    context,
+                                                  ).scaffoldBackgroundColor,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       );
                                     }),
                                   ],
@@ -638,8 +643,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   color: sendByMe
                                       ? colorScheme.secondary
                                       : Theme.of(
-                                          context,
-                                        ).scaffoldBackgroundColor,
+                                    context,
+                                  ).scaffoldBackgroundColor,
                                 ),
                               ),
                           ],
@@ -662,12 +667,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const SizedBox(width: 2.5),
-                Icon(
-                  message.readAt != null
-                      ? Icons.done_all_rounded
-                      : Icons.done_rounded,
-                  size: 15,
-                ),
+                if (sendByMe) ...[
+                  Icon(
+                    message.readAt != null
+                        ? Icons.done_all_rounded
+                        : Icons.done_rounded,
+                    size: 15,
+                  ),
+                ]
               ],
             ),
           ],
@@ -683,10 +690,10 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       context.read<SendMessageCubit>().sendMessage(
-            receiverId: widget.receiverId,
-            message: _messageController.text,
-            files: selectedAttachments.isNotEmpty ? selectedAttachments : null,
-          );
+        receiverId: widget.receiverId,
+        message: _messageController.text,
+        files: selectedAttachments.isNotEmpty ? selectedAttachments : null,
+      );
     }
 
     return Container(
@@ -709,7 +716,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       setState(() {
                         selectedAttachments.addAll(attachments);
                       });
-                      print(selectedAttachments);
+                      debugPrint(selectedAttachments.toString());
                     },
                   ),
                   context: context,
@@ -750,31 +757,31 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(width: 10),
             BlocBuilder<SendMessageCubit, SendMessageState>(
               buildWhen: (previous, current) =>
-                  previous.status != current.status,
+              previous.status != current.status,
               builder: (context, state) {
                 return state.status == SendMessageStatus.sending
                     ? SizedBox(
-                        height: 20,
-                        child: CustomCircularProgressIndicator(
-                          widthAndHeight: 20,
-                          indicatorColor: Utils.getColorScheme(
-                            context,
-                          ).secondary,
-                        ),
-                      )
+                  height: 20,
+                  child: CustomCircularProgressIndicator(
+                    widthAndHeight: 20,
+                    indicatorColor: Utils.getColorScheme(
+                      context,
+                    ).secondary,
+                  ),
+                )
                     : InkWell(
-                        onTap: onTapSendMessage,
-                        child: CircleAvatar(
-                          radius: 15.5,
-                          backgroundColor: Colors.transparent,
-                          child: Icon(
-                            Icons.send,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.secondary.withValues(alpha: 0.75),
-                          ),
-                        ),
-                      );
+                  onTap: onTapSendMessage,
+                  child: CircleAvatar(
+                    radius: 15.5,
+                    backgroundColor: Colors.transparent,
+                    child: Icon(
+                      Icons.send,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondary.withValues(alpha: 0.75),
+                    ),
+                  ),
+                );
               },
             ),
           ],
@@ -837,12 +844,25 @@ class _ChatScreenState extends State<ChatScreen> {
     return BlocListener<SocketSettingCubit, SocketSettingState>(
       listener: (context, state) {
         if (state is SocketMessageReceived) {
+          print("📩 ChatScreen: Socket message received from: ${state.from}");
           if (widget.receiverId.toString() == state.from) {
+            print("📩 ChatScreen: Message is for this chat, adding to list");
             context.read<ChatMessagesCubit>().messageReceived(
-                  from: state.from,
-                  message: state.message,
-                );
+              from: state.from,
+              message: state.message,
+            );
+          } else {
+            print(
+                "📩 ChatScreen: Message is for different chat (receiver: ${widget.receiverId}, from: ${state.from})");
           }
+        }
+        // Silently sync missed messages after reconnection (no loading spinner)
+        if (state is SocketReconnected) {
+          print(
+              "🔄 ChatScreen: Socket reconnected, syncing missed messages...");
+          context.read<ChatMessagesCubit>().syncMissedMessages(
+            receiverId: widget.receiverId,
+          );
         }
       },
       child: Scaffold(
@@ -854,14 +874,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 listener: (context, state) {
                   if (state.status == SendMessageStatus.success) {
                     final message = state.message!;
+                    print(
+                        "✅ ChatScreen: Message sent successfully, id: ${message.id}");
 
-                    /// Update the message locally in the cubit and send it to the socket.
+                    /// Update the message locally in the cubit.
+                    /// (Reverb handles broadcasting to the receiver automatically via the backend)
                     context.read<ChatMessagesCubit>().messageSent(message);
-                    context.read<SocketSettingCubit>().sendMessage(
-                          userId: message.senderId,
-                          receiverId: widget.receiverId,
-                          message: message,
-                        );
 
                     ///Clear the message field and attachments once they're sent
                     _messageController.clear();
@@ -873,6 +891,22 @@ class _ChatScreenState extends State<ChatScreen> {
                           Utils.parseApiDateWithFormat(message.updatedAt) ??
                               DateTime.now();
                     });
+                  } else if (state.status == SendMessageStatus.failure) {
+                    print("❌ ChatScreen: Message send FAILED");
+                    // Dismiss keyboard first to ensure snackbar is visible
+                    FocusScope.of(context).unfocus();
+
+                    // Show error message with a small delay to ensure keyboard is dismissed
+                    Future.delayed(Duration(milliseconds: 100), () {
+                      if (context.mounted) {
+                        Utils.showCustomSnackBar(
+                          delayDuration: Duration(seconds: 4),
+                          context: context,
+                          errorMessage: Utils.getTranslatedLabel("noInternet"),
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                        );
+                      }
+                    });
                   }
                 },
                 builder: (context, state) {
@@ -880,9 +914,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       ChatReadMessageStatus>(
                     listener: (context, state) {
                       if (state == ChatReadMessageStatus.success) {
+                        print(
+                            "✅ ChatScreen: Messages marked as read successfully");
                         context.read<ChatMessagesCubit>().readMessages(
-                              unreadMessages,
-                            );
+                          unreadMessages,
+                        );
 
                         unreadCount += unreadMessages.length;
                       }
@@ -890,19 +926,25 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: BlocConsumer<ChatMessagesCubit, ChatMessagesState>(
                       listener: (context, state) {
                         if (state is ChatMessagesFetchSuccess) {
+                          print(
+                              "✅ ChatScreen: Loaded ${state.response.messages.length} messages");
                           unreadMessages = state.response.messages
                               .where(
                                 (msg) =>
-                                    msg.senderId == widget.receiverId &&
-                                    msg.readAt == null,
-                              )
+                            msg.senderId == widget.receiverId &&
+                                msg.readAt == null,
+                          )
                               .toList();
+                          print(
+                              "📬 ChatScreen: ${unreadMessages.length} unread messages found");
 
                           if (unreadMessages.isNotEmpty) {
+                            print(
+                                "📬 ChatScreen: Marking ${unreadMessages.length} messages as read");
                             context.read<ChatReadMessageCubit>().readMessage(
-                                  messagesIds:
-                                      unreadMessages.map((e) => e.id).toList(),
-                                );
+                              messagesIds:
+                              unreadMessages.map((e) => e.id).toList(),
+                            );
                           }
                         }
                       },
@@ -948,7 +990,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             reverse: true,
                                             padding: EdgeInsets.only(
                                               top:
-                                                  Utils.getScrollViewTopPadding(
+                                              Utils.getScrollViewTopPadding(
                                                 context: context,
                                                 appBarHeightPercentage: Utils
                                                     .appBarSmallerHeightPercentage,
@@ -967,13 +1009,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   if (index ==
-                                                          messages.length - 1 &&
+                                                      messages.length - 1 &&
                                                       state.loadMore)
                                                     Center(
                                                       child:
-                                                          CustomCircularProgressIndicator(
+                                                      CustomCircularProgressIndicator(
                                                         indicatorColor:
-                                                            Theme.of(
+                                                        Theme.of(
                                                           context,
                                                         ).colorScheme.primary,
                                                       ),
@@ -988,9 +1030,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                                   ///
                                                   GestureDetector(
                                                     child:
-                                                        _buildMessageContainer(
+                                                    _buildMessageContainer(
                                                       boxConstraints:
-                                                          boxConstraints,
+                                                      boxConstraints,
                                                       message: message,
                                                     ),
                                                     onLongPress: () {
@@ -998,7 +1040,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           widget.receiverId) {
                                                         setState(() {
                                                           _isMessageLongPressed =
-                                                              true;
+                                                          true;
                                                         });
                                                       }
                                                     },
@@ -1037,142 +1079,142 @@ class _ChatScreenState extends State<ChatScreen> {
                                             children: selectedAttachments
                                                 .map(
                                                   (e) => Container(
-                                                    width: 120,
-                                                    height: 100,
-                                                    margin:
-                                                        EdgeInsetsDirectional
-                                                            .only(
-                                                      start: 10,
-                                                      end: 10,
-                                                    ),
-                                                    decoration: BoxDecoration(
+                                                width: 120,
+                                                height: 100,
+                                                margin:
+                                                EdgeInsetsDirectional
+                                                    .only(
+                                                  start: 10,
+                                                  end: 10,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                  BorderRadius.circular(
+                                                    8,
+                                                  ),
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                ),
+                                                child: Stack(
+                                                  alignment:
+                                                  Alignment.center,
+                                                  children: [
+                                                    e.path.endsWith(
+                                                      '.jpg',
+                                                    ) ||
+                                                        e.path.endsWith(
+                                                          '.jpeg',
+                                                        ) ||
+                                                        e.path.endsWith(
+                                                          '.png',
+                                                        )
+                                                        ? ClipRRect(
                                                       borderRadius:
-                                                          BorderRadius.circular(
+                                                      BorderRadius
+                                                          .circular(
                                                         8,
                                                       ),
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary,
-                                                    ),
-                                                    child: Stack(
-                                                      alignment:
-                                                          Alignment.center,
+                                                      child:
+                                                      Image.file(
+                                                        File(e.path),
+                                                        fit: BoxFit
+                                                            .fitWidth,
+                                                      ),
+                                                    )
+                                                        : Column(
+                                                      mainAxisSize:
+                                                      MainAxisSize
+                                                          .min,
+                                                      mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .center,
                                                       children: [
-                                                        e.path.endsWith(
-                                                                  '.jpg',
-                                                                ) ||
-                                                                e.path.endsWith(
-                                                                  '.jpeg',
-                                                                ) ||
-                                                                e.path.endsWith(
-                                                                  '.png',
-                                                                )
-                                                            ? ClipRRect(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                  8,
-                                                                ),
-                                                                child:
-                                                                    Image.file(
-                                                                  File(e.path),
-                                                                  fit: BoxFit
-                                                                      .fitWidth,
-                                                                ),
-                                                              )
-                                                            : Column(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons
-                                                                        .insert_drive_file_outlined,
-                                                                    size: 24,
-                                                                    color: Theme
-                                                                            .of(
-                                                                      context,
-                                                                    )
-                                                                        .colorScheme
-                                                                        .surface,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    height: 8,
-                                                                  ),
-                                                                  Text(
-                                                                    e.name,
-                                                                    style:
-                                                                        TextStyle(
-                                                                      fontSize:
-                                                                          12,
-                                                                      color: Theme
-                                                                              .of(
-                                                                        context,
-                                                                      )
-                                                                          .colorScheme
-                                                                          .surface,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-
-                                                        ///
-                                                        Align(
-                                                          alignment:
-                                                              AlignmentDirectional
-                                                                  .topEnd,
-                                                          child: InkWell(
-                                                            onTap: () {
-                                                              setState(() {
-                                                                selectedAttachments
-                                                                    .remove(e);
-                                                              });
-                                                            },
-                                                            child: Container(
-                                                              height: 24,
-                                                              width: 24,
-                                                              margin:
-                                                                  EdgeInsetsDirectional
-                                                                      .only(
-                                                                end: 8,
-                                                                top: 8,
-                                                              ),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                                color: Colors
-                                                                    .white,
-                                                                border:
-                                                                    Border.all(
-                                                                  color: Colors
-                                                                      .red,
-                                                                  width: 1,
-                                                                ),
-                                                              ),
-                                                              alignment:
-                                                                  Alignment
-                                                                      .center,
-                                                              child: Icon(
-                                                                Icons
-                                                                    .close_rounded,
-                                                                color:
-                                                                    Colors.red,
-                                                                size: 15,
-                                                              ),
-                                                            ),
+                                                        Icon(
+                                                          Icons
+                                                              .insert_drive_file_outlined,
+                                                          size: 24,
+                                                          color: Theme
+                                                              .of(
+                                                            context,
+                                                          )
+                                                              .colorScheme
+                                                              .surface,
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        Text(
+                                                          e.name,
+                                                          style:
+                                                          TextStyle(
+                                                            fontSize:
+                                                            12,
+                                                            color: Theme
+                                                                .of(
+                                                              context,
+                                                            )
+                                                                .colorScheme
+                                                                .surface,
+                                                            fontWeight:
+                                                            FontWeight
+                                                                .w500,
                                                           ),
                                                         ),
                                                       ],
                                                     ),
-                                                  ),
-                                                )
+
+                                                    ///
+                                                    Align(
+                                                      alignment:
+                                                      AlignmentDirectional
+                                                          .topEnd,
+                                                      child: InkWell(
+                                                        onTap: () {
+                                                          setState(() {
+                                                            selectedAttachments
+                                                                .remove(e);
+                                                          });
+                                                        },
+                                                        child: Container(
+                                                          height: 24,
+                                                          width: 24,
+                                                          margin:
+                                                          EdgeInsetsDirectional
+                                                              .only(
+                                                            end: 8,
+                                                            top: 8,
+                                                          ),
+                                                          decoration:
+                                                          BoxDecoration(
+                                                            shape: BoxShape
+                                                                .circle,
+                                                            color: Colors
+                                                                .white,
+                                                            border:
+                                                            Border.all(
+                                                              color: Colors
+                                                                  .red,
+                                                              width: 1,
+                                                            ),
+                                                          ),
+                                                          alignment:
+                                                          Alignment
+                                                              .center,
+                                                          child: Icon(
+                                                            Icons
+                                                                .close_rounded,
+                                                            color:
+                                                            Colors.red,
+                                                            size: 15,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
                                                 .toList(),
                                           ),
                                         ),
